@@ -86,8 +86,8 @@ h1{font-family:var(--display);font-weight:700;font-size:22px;margin:0;line-heigh
 .d.late{color:var(--late)} .d.ok{color:var(--live)} .d.early{color:var(--early)}
 .live{font-size:13px;color:var(--muted);text-decoration:none;margin-left:6px;font-weight:600}
 .empty{padding:16px 0;color:var(--muted)}
-:root{--flag:#e0a800;--flagt:#8a6400;--flagbg:#fff6d6}
-body.dark{--flag:#f5c542;--flagt:#f5c542;--flagbg:#3a3220}
+:root{--flag:#e0a800;--flagt:#8a6400;--flagbg:#fff6d6;--us:#7b3fe4;--usbg:#efe6ff;--them:#d2392b;--thembg:#fde8e5}
+body.dark{--flag:#f5c542;--flagt:#f5c542;--flagbg:#3a3220;--us:#b48cff;--usbg:#2e2547;--them:#ff6b5e;--thembg:#45231f}
 body.hasflags{--peek:222px}
 .fchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;align-items:center}
 .fchips::-webkit-scrollbar{display:none}
@@ -106,12 +106,24 @@ body.hasflags{--peek:222px}
 .hitline{font-size:14px;font-weight:700;color:var(--flagt);margin-top:2px}
 .filters button.flagf[aria-pressed="true"]{background:var(--flagbg);border-color:var(--flag);opacity:1}
 .filters button.flagf[aria-pressed="false"]{opacity:.75}
-.flagbar{position:absolute;left:max(12px,env(safe-area-inset-left,0px));right:68px;bottom:calc(var(--peek) + env(safe-area-inset-bottom,0px) + 14px);z-index:5;background:var(--panel);border-radius:16px;box-shadow:var(--shadow);padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center}
+.flagbar{position:absolute;left:max(12px,env(safe-area-inset-left,0px));right:68px;bottom:calc(var(--peek) + env(safe-area-inset-bottom,0px) + 14px);z-index:5;background:var(--panel);border-radius:16px;box-shadow:var(--shadow);padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:center}
+.fbtns{grid-column:1/-1;display:flex;gap:6px}
+.tg{flex:1;border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 6px;font-weight:700;font-size:15px;white-space:nowrap}
+.tg.b{border-color:var(--flag);color:var(--flagt)} .tg.us{border-color:var(--us);color:var(--us)} .tg.them{border-color:var(--them);color:var(--them)}
+.tg.b[aria-pressed="true"]{background:var(--flag);color:#1d2321} .tg.us[aria-pressed="true"]{background:var(--us);color:#fff} .tg.them[aria-pressed="true"]{background:var(--them);color:#fff}
+.score{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:15px;white-space:nowrap;flex:none;margin-right:2px}
+.score .u{color:var(--us)} .score .t{color:var(--them)} .score .n{font-family:var(--display);font-size:20px}
+.fchip .od{width:9px;height:9px;border-radius:50%;margin-left:9px;flex:none}
+.fchip.us{background:var(--usbg)} .fchip.them{background:var(--thembg)}
+.claims{display:grid;gap:4px;font-size:15px}
+.claims .lb{font-weight:700}
+.claims button{border:0;background:none;padding:0;font:inherit;text-decoration:underline;text-underline-offset:2px}
+.key{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--muted)}
+.key i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.hitline .o-us{color:var(--us)} .hitline .o-them{color:var(--them)}
 .flagbar .dot2{width:14px;height:14px;border-radius:50%}
 .flagbar .nm{font-weight:700;font-size:17px;line-height:1.2}
 .flagbar .sub{font-size:14px;color:var(--muted)}
-.flagbar .fb{border:0;border-radius:999px;padding:9px 14px;font-weight:700;font-size:15px;background:var(--flag);color:#1d2321;white-space:nowrap}
-.flagbar .fb.on{background:var(--bg);color:var(--ink)}
 .flagbar .cl{border:0;background:none;font-size:22px;color:var(--muted);padding:0 4px;line-height:1}
 @media (min-width:900px){ .flagbar{left:calc(var(--panel-w) + 16px);right:auto;bottom:16px;width:400px} body.panel-closed .flagbar{left:16px} }
 
@@ -174,9 +186,11 @@ details.about div{margin-top:6px;display:grid;gap:6px}
     </div>
     <div class="sbody" id="sbody">
       <section class="boardsec" id="boardsec">
-        <div class="bh"><h2>⚑ On the board</h2><span id="bcount">0 flagged</span><button type="button" id="bclear" hidden>Clear all</button></div>
-        <select id="badd" aria-label="Flag a college as on the board"><option value="">Flag a college…</option></select>
-        <div class="tip">Or tap any college on the map. Buses to flagged colleges are highlighted.</div>
+        <div class="bh"><h2>⚑ Board &amp; claims</h2><span id="bcount"></span><button type="button" id="bclear" hidden>Clear all</button></div>
+        <select id="badd" aria-label="Mark a college"><option value="">Mark a college…</option></select>
+        <div class="claims" id="claims"></div>
+        <div class="key"><span><i style="background:var(--flag)"></i>On the board</span><span><i style="background:var(--us)"></i>Claimed by us</span><span><i style="background:var(--them)"></i>Claimed by them</span></div>
+        <div class="tip">Tap any college on the map to mark it. Buses to colleges on the board are highlighted.</div>
       </section>
       <div class="filters" id="filters"></div>
       <p class="note" id="tabnote"></p>
@@ -314,36 +328,61 @@ const ROUTES={W:["miD2rE_BtDbpCFfxH4BnBMzCkCdmBjB-BJKnC6BlE4CvC9I7BzHpCS1BG_XiC2
 const $=id=>document.getElementById(id);
 const desktop=()=>window.matchMedia("(min-width:900px)").matches;
 let tab="emma", show={W:true,N:true,E:true,F:true}, live=null, me=null, focusStop=null, setting=false;
-let flags=new Set(), onlyFlag=false, fbCol=null;
-try{ const f=JSON.parse(localStorage.getItem("cc-flags")||"[]"); if(Array.isArray(f)) flags=new Set(f.filter(n=>COL.some(c=>c[0]===n))); }catch(e){}
+let marks={}, onlyFlag=false, fbCol=null;
+try{ const m=JSON.parse(localStorage.getItem("cc-marks")||"null");
+  if(m&&typeof m==="object") marks=m;
+  else { const f=JSON.parse(localStorage.getItem("cc-flags")||"[]"); if(Array.isArray(f)) for(const n of f) marks[n]={b:true}; }
+  for(const n of Object.keys(marks)) if(!COL.some(c=>c[0]===n)) delete marks[n];
+}catch(e){}
+const onB=n=>!!(marks[n]&&marks[n].b);
+const ownOf=n=>(marks[n]&&marks[n].o)||null;
+const marked=n=>onB(n)||!!ownOf(n);
+const boardList=()=>Object.keys(marks).filter(onB).sort();
+const OWNC={us:"--us",them:"--them"};
 const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const ALIAS={"Lucy Cav":["Lucy"],"Murray Edwards":["Murray Edwards","Medwards"],"Hughes":["Hughes"],"Emma":["Emma(?![a-z])"],"Clare":["Clare(?! Hall)"],"Fitz":["Fitz"]};
-function hitsOf(r){ if(!flags.size) return []; const txt=r.d.map(d=>d[1]+" "+d[2]).join(" | ");
-  return [...flags].filter(f=>(ALIAS[f]||[esc(f)]).some(a=>new RegExp("(^|[^A-Za-z])"+a).test(txt))); }
-function saveFlags(){ try{ localStorage.setItem("cc-flags",JSON.stringify([...flags])); }catch(e){} }
-function toggleFlag(name){ if(flags.has(name)) flags.delete(name); else flags.add(name); saveFlags(); renderFlags(); render(); drawStatic(); drawDynamic(); renderFlagbar(); }
+function hitsOf(r){ const bl=boardList(); if(!bl.length) return []; const txt=r.d.map(d=>d[1]+" "+d[2]).join(" | ");
+  return bl.filter(f=>(ALIAS[f]||[esc(f)]).some(a=>new RegExp("(^|[^A-Za-z])"+a).test(txt))); }
+function saveMarks(){ try{ localStorage.setItem("cc-marks",JSON.stringify(marks)); }catch(e){} }
+function setMark(n,patch){ const m=Object.assign({},marks[n]||{},patch); if(!m.o) delete m.o; if(!m.b) delete m.b; if(!m.b&&!m.o) delete marks[n]; else marks[n]=m; saveMarks(); refreshMarks(); }
+function refreshMarks(){ renderFlags(); render(); drawStatic(); drawDynamic(); renderFlagbar(); }
+function openMark(n){ if(!desktop()) setOpen(false); const cc=COL.find(x=>x[0]===n); setTimeout(()=>{ centerOn([cc[1],cc[2]],3); fbCol=n; renderFlagbar(); labelScale(); },desktop()?0:300); }
 function renderFlags(){
-  const has=flags.size>0; document.body.classList.toggle("hasflags",has);
-  $("bcount").textContent=has?`${flags.size} flagged`+(flags.size>7?" (board has 7)":""):"none flagged"; $("bclear").hidden=!has;
+  const bl=boardList(), us=Object.keys(marks).filter(n=>ownOf(n)==="us").sort(), them=Object.keys(marks).filter(n=>ownOf(n)==="them").sort();
+  const has=Object.keys(marks).length>0; document.body.classList.toggle("hasflags",has);
+  $("bcount").textContent=`${bl.length} on board`+(bl.length>7?" (max 7)":""); $("bclear").hidden=!has;
   const fc=$("fchips"); fc.innerHTML=""; fc.hidden=!has;
-  if(has){ const c=document.createElement("span"); c.className="cnt"; c.textContent="⚑ Board"; fc.appendChild(c);
-    for(const n of [...flags].sort()){ const ch=document.createElement("span"); ch.className="fchip";
-      const go=document.createElement("button"); go.type="button"; go.className="go"; go.textContent=n; go.title="Show on map"; go.onclick=()=>{ const cc=COL.find(x=>x[0]===n); if(!desktop()) setOpen(false); setTimeout(()=>{ centerOn([cc[1],cc[2]],3); fbCol=n; renderFlagbar(); },desktop()?0:300); };
-      const x=document.createElement("button"); x.type="button"; x.className="x"; x.textContent="×"; x.setAttribute("aria-label","Unflag "+n); x.onclick=()=>toggleFlag(n);
+  if(has){
+    const sc=document.createElement("span"); sc.className="score"; sc.title="Colleges claimed";
+    sc.innerHTML=`<span class="u">Us <span class="n">${us.length}</span></span>–<span class="t"><span class="n">${them.length}</span> Them</span>`; fc.appendChild(sc);
+    for(const n of bl){ const o=ownOf(n); const ch=document.createElement("span"); ch.className="fchip"+(o?" "+o:"");
+      if(o){ const od=document.createElement("span"); od.className="od"; od.style.background=`var(${OWNC[o]})`; ch.appendChild(od); }
+      const go=document.createElement("button"); go.type="button"; go.className="go"; if(o) go.style.paddingLeft="5px"; go.textContent=n; go.title="Show on map"; go.onclick=()=>openMark(n);
+      const x=document.createElement("button"); x.type="button"; x.className="x"; x.textContent="×"; x.setAttribute("aria-label","Remove "+n+" from the board"); x.onclick=()=>setMark(n,{b:false});
       ch.append(go,x); fc.appendChild(ch); } }
-  const s=$("badd"); s.innerHTML='<option value="">Flag a college…</option>';
-  for(const c of COL.map(c=>c[0]).filter(n=>!flags.has(n)).sort()){ const o=document.createElement("option"); o.value=c; o.textContent=c; s.appendChild(o); }
+  const cl=$("claims"); cl.innerHTML="";
+  for(const [lab,list,o] of [["Ours",us,"us"],["Theirs",them,"them"]]){ const d=document.createElement("div");
+    const l=document.createElement("span"); l.className="lb"; l.style.color=`var(${OWNC[o]})`; l.textContent=`${lab} (${list.length}): `; d.appendChild(l);
+    if(!list.length) d.append("none");
+    list.forEach((n,i)=>{ if(i) d.append(", "); const b=document.createElement("button"); b.type="button"; b.textContent=n+(onB(n)?" ⚑":""); b.onclick=()=>openMark(n); d.appendChild(b); });
+    cl.appendChild(d); }
+  const s=$("badd"); s.innerHTML='<option value="">Mark a college…</option>';
+  for(const c of COL.map(c=>c[0]).sort()){ const o=document.createElement("option"); o.value=c; const tags=[onB(c)?"⚑":"",ownOf(c)==="us"?"ours":ownOf(c)==="them"?"theirs":""].filter(Boolean).join(" "); o.textContent=c+(tags?`  (${tags})`:""); s.appendChild(o); }
 }
 function renderFlagbar(){
   const fb=$("flagbar"); if(!fbCol){ fb.hidden=true; return; } fb.hidden=false; fb.innerHTML="";
-  const c=COL.find(x=>x[0]===fbCol); const k=c[3]; const on=flags.has(fbCol);
-  const d=document.createElement("span"); d.className="dot2"; d.style.background=k==="C"?"var(--central)":`var(${CL[k].c})`;
-  const mid=document.createElement("div"); const nm=document.createElement("div"); nm.className="nm"; nm.textContent=fbCol;
-  const sub=document.createElement("div"); sub.className="sub"; sub.textContent=[on?"On your board":(k==="C"?"Central":CL[k].name), me?`${Math.max(1,Math.round(walkMin(me,[c[1],c[2]])))} min walk`:""].filter(Boolean).join(" · ");
+  const n=fbCol, c=COL.find(x=>x[0]===n); const k=c[3]; const o=ownOf(n);
+  const d=document.createElement("span"); d.className="dot2"; d.style.background=o?`var(${OWNC[o]})`:k==="C"?"var(--central)":`var(${CL[k].c})`;
+  const mid=document.createElement("div"); const nm=document.createElement("div"); nm.className="nm"; nm.textContent=n;
+  const sub=document.createElement("div"); sub.className="sub"; sub.textContent=[onB(n)?"On the board":"Not on the board", o==="us"?"claimed by us":o==="them"?"claimed by them":"", me?`${Math.max(1,Math.round(walkMin(me,[c[1],c[2]])))} min walk`:""].filter(Boolean).join(" · ");
   mid.append(nm,sub);
-  const b=document.createElement("button"); b.type="button"; b.className="fb"+(on?" on":""); b.textContent=on?"Unflag":"⚑ Flag"; b.onclick=()=>toggleFlag(fbCol);
   const x=document.createElement("button"); x.type="button"; x.className="cl"; x.textContent="×"; x.setAttribute("aria-label","Close"); x.onclick=()=>{ fbCol=null; renderFlagbar(); labelScale(); };
-  fb.append(d,mid,b,x);
+  const bt=document.createElement("div"); bt.className="fbtns";
+  const tg=(cls,label,pressed,fn)=>{ const b=document.createElement("button"); b.type="button"; b.className="tg "+cls; b.textContent=label; b.setAttribute("aria-pressed",String(pressed)); b.onclick=fn; return b; };
+  bt.append(tg("b","⚑ On board",onB(n),()=>setMark(n,{b:!onB(n)})),
+            tg("us","Ours",o==="us",()=>setMark(n,{o:o==="us"?null:"us"})),
+            tg("them","Theirs",o==="them",()=>setMark(n,{o:o==="them"?null:"them"})));
+  fb.append(d,mid,x,bt);
 }
 try{const s=localStorage.getItem("cc-tab"); if(s && GROUPS.some(g=>g.id===s)) tab=s; if(localStorage.getItem("cc-dark")) document.body.classList.add("dark");}catch(e){}
 const setTheme=()=>{ const d=document.body.classList.contains("dark"); $("theme").textContent=d?"Light mode":"Dark mode"; document.querySelector('meta[name=theme-color]').content=d?"#121614":"#f4f5f2"; };
@@ -394,7 +433,7 @@ function render(){
   for(const r of g.rows){ if(!r.d.some(d=>show[d[0]])) continue; const hits=hitsOf(r); if(onlyFlag&&!hits.length) continue; const up=upcoming(r,start); items.push({r,up,hits,first:up.length?up[0].eff:99999}); }
   items.sort((a,b)=>a.first-b.first);
   const board=$("board"); board.innerHTML="";
-  if(!items.length) board.innerHTML=onlyFlag?(flags.size?'<div class="empty">No buses from here go to your flagged colleges.</div>':'<div class="empty">Flag the colleges on the board first.</div>'):'<div class="empty">No routes match the cluster filters.</div>';
+  if(!items.length) board.innerHTML=onlyFlag?(boardList().length?'<div class="empty">No buses from here go to your flagged colleges.</div>':'<div class="empty">Mark the colleges on the board first.</div>'):'<div class="empty">No routes match the cluster filters.</div>';
   for(const it of items){
     const r=it.r, row=document.createElement("div"); row.className="row"+(it.hits.length?" hit":""); row.tabIndex=0; row.setAttribute("role","button");
     row.onclick=e=>{ if(e.target.closest("a")) return; focusOn(r.atco); };
@@ -408,7 +447,9 @@ function render(){
     const parts=r.d.filter(d=>show[d[0]]).map(d=>{const s=document.createElement("span");const b=document.createElement("b");b.textContent=(d[3]?"+"+d[3]+" ":"")+d[1];s.appendChild(b);if(d[2])s.append(" ("+d[2]+")");return s});
     parts.forEach((p,i)=>{ if(i) ds.append(" · "); ds.appendChild(p); });
     mid.append(st);
-    if(it.hits.length){ const h=document.createElement("div"); h.className="hitline"; h.textContent="⚑ "+it.hits.join(", "); mid.appendChild(h); }
+    if(it.hits.length){ const h=document.createElement("div"); h.className="hitline"; h.append("⚑ ");
+      it.hits.forEach((n,i)=>{ if(i) h.append(", "); const o=ownOf(n); const s=document.createElement("span"); if(o) s.className="o-"+o; s.textContent=n+(o==="us"?" (ours)":o==="them"?" (theirs)":""); h.appendChild(s); });
+      mid.appendChild(h); }
     mid.append(ds);
     if(it.up.length>1){ const th=document.createElement("div"); th.className="then"; th.append("then ");
       it.up.slice(1,4).forEach((u,i)=>{ if(i) th.append(" · "); th.append(u.t); const c=delayChip(u.lv); if(c) th.appendChild(c); }); mid.appendChild(th); }
@@ -458,9 +499,9 @@ function locate(cb){
     ()=>{ $("locmsg").textContent="Location isn't available here. Tap the map or pick a college."; },{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
 }
 $("gps").onclick=()=>locate();
-$("badd").onchange=e=>{ const v=e.target.value; if(v&&!flags.has(v)) toggleFlag(v); };
+$("badd").onchange=e=>{ const v=e.target.value; e.target.value=""; if(v) openMark(v); };
 $("bclear").onclick=()=>{ if(!$("bclear").dataset.armed){ $("bclear").dataset.armed="1"; $("bclear").textContent="Tap again to clear"; setTimeout(()=>{ delete $("bclear").dataset.armed; $("bclear").textContent="Clear all"; },2500); return; }
-  delete $("bclear").dataset.armed; $("bclear").textContent="Clear all"; flags.clear(); saveFlags(); renderFlags(); render(); drawStatic(); drawDynamic(); renderFlagbar(); };
+  delete $("bclear").dataset.armed; $("bclear").textContent="Clear all"; marks={}; saveMarks(); refreshMarks(); };
 $("locate").onclick=()=>locate(()=>centerOn(me,3));
 $("tapset").onclick=()=>{ setting=!setting; $("mapbox").classList.toggle("setting",setting); $("hint").hidden=!setting; $("tapset").classList.toggle("on",setting); if(setting&&!desktop()) setOpen(false); };
 (function(){ const s=$("atcol"); for(const c of COL.filter(c=>c[3]!=="C").concat(COL.filter(c=>c[3]==="C"))){ const o=document.createElement("option"); o.value=c[0]; o.textContent=c[0]; s.appendChild(o);} s.onchange=()=>{ const c=COL.find(x=>x[0]===s.value); if(c) setMe([c[1],c[2]],`At ${c[0]}'s porters' lodge.`); }; })();
@@ -490,8 +531,9 @@ function drawStatic(){
   if(MD.water) el("path",{d:pathOf(MD.water,true),fill:"var(--m-water)"},gStatic);
   if(MD.river) el("path",{d:pathOf(MD.river,false),fill:"none",stroke:"var(--m-water)","stroke-width":9,"stroke-linecap":"round","stroke-linejoin":"round"},gStatic);
   const cg=el("g",{},gStatic);
-  if(MD.cols) for(const [k,s] of Object.entries(MD.cols)){ const c=CLUSTER[k]||"C"; const outer=c!=="C"; const fl=flags.has(k); if(outer&&!show[c]&&!fl) continue; const col=fl?"var(--flag)":outer?`var(${CL[c].c})`:"var(--central)";
-    if(fl){ el("path",{d:pathOf(s,true),fill:"var(--flag)","fill-opacity":.28,stroke:"var(--flag)","stroke-width":3.2,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"},cg); continue; }
+  if(MD.cols) for(const [k,s] of Object.entries(MD.cols)){ const c=CLUSTER[k]||"C"; const outer=c!=="C"; const fl=marked(k); if(outer&&!show[c]&&!fl) continue; const col=outer?`var(${CL[c].c})`:"var(--central)";
+    if(fl){ const o=ownOf(k), b=onB(k); const fc=o?`var(${OWNC[o]})`:"var(--flag)";
+      el("path",{d:pathOf(s,true),fill:fc,"fill-opacity":o?.30:.28,stroke:b?"var(--flag)":fc,"stroke-width":b?3.4:2.6,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"},cg); continue; }
     el("path",{d:pathOf(s,true),fill:col,"fill-opacity":outer?.16:.08,stroke:col,"stroke-width":outer?2.2:1.2,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"},cg); }
   if(MD.bld) el("path",{d:pathOf(MD.bld,true),fill:"var(--m-bld)",stroke:"var(--m-bldl)","stroke-width":.6,"vector-effect":"non-scaling-stroke"},gStatic);
   const roads=[["r3",5,"var(--m-road)"],["r2",8,"var(--m-road)"],["r1",11,"var(--m-main)"]];
@@ -518,11 +560,11 @@ function drawDynamic(){
     el("rect",{x:x-7,y:y-7,width:14,height:14,rx:4,fill:on?"var(--chip)":"var(--panel)",stroke:"var(--chip)","stroke-width":2},g);
     el("path",{d:`M${x-3.5} ${y+2.5}h7M${x-3.5} ${y-1}h7`,stroke:on?"var(--chipfg)":"var(--chip)","stroke-width":1.6},g);
     labelEls.push(g); }
-  for(const c of COL){ const k=c[3], outer=k!=="C"; const fl=flags.has(c[0]); if(outer&&!show[k]&&!fl) continue; const [x,y]=PX(c[1],c[2]);
-    if(fl){ const g=el("g",{"data-k":"flag","data-x":x,"data-y":y},gLabels);
-      el("circle",{cx:x,cy:y,r:small?15:14,fill:"var(--flag)","fill-opacity":.25,stroke:"var(--flag)","stroke-width":3},g);
-      el("circle",{cx:x,cy:y,r:small?8:7,fill:outer?`var(${CL[k].c})`:"var(--central)",stroke:"var(--panel)","stroke-width":2.5},g);
-      const t=el("text",{x:x+16,y:y+6,"font-family":"var(--body)","font-weight":800,"font-size":small?19:17,fill:"var(--flagt)",stroke:"var(--m-land)","stroke-width":5,"paint-order":"stroke"},g); t.textContent="⚑ "+c[0];
+  for(const c of COL){ const k=c[3], outer=k!=="C"; const fl=marked(c[0]); if(outer&&!show[k]&&!fl) continue; const [x,y]=PX(c[1],c[2]);
+    if(fl){ const g=el("g",{"data-k":"flag","data-x":x,"data-y":y},gLabels); const o=ownOf(c[0]), b=onB(c[0]); const oc=o?`var(${OWNC[o]})`:null;
+      if(b) el("circle",{cx:x,cy:y,r:small?15:14,fill:"var(--flag)","fill-opacity":.25,stroke:"var(--flag)","stroke-width":3},g);
+      el("circle",{cx:x,cy:y,r:o?(small?9.5:8.5):(small?8:7),fill:oc||(outer?`var(${CL[k].c})`:"var(--central)"),stroke:"var(--panel)","stroke-width":2.5},g);
+      const t=el("text",{x:x+16,y:y+6,"font-family":"var(--body)","font-weight":800,"font-size":small?19:17,fill:oc||"var(--flagt)",stroke:"var(--m-land)","stroke-width":5,"paint-order":"stroke"},g); t.textContent=(b?"⚑ ":"")+c[0];
       labelEls.push(g); continue; }
     const g=el("g",{"data-k":outer?"outer":"central","data-x":x,"data-y":y},gLabels);
     el("circle",{cx:x,cy:y,r:outer?(small?9:8):(small?6:5),fill:outer?`var(${CL[k].c})`:"var(--central)",stroke:"var(--panel)","stroke-width":2.5},g);
@@ -579,7 +621,7 @@ function refit(){ for(const t of svg.querySelectorAll("text")) t._w=0; drawDynam
   const end=e=>{ if(!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if(pts.size<2) pinch=null;
     if(pts.size===0&&moved<8&&setting){ const r=svg.getBoundingClientRect(); const x=(e.clientX-r.left-view.tx)/view.s, y=(e.clientY-r.top-view.ty)/view.s; setMe([LAT0-y/KY, LON0+x/KX],"Using the spot you tapped."); if(!desktop()) setOpen(true); }
     else if(pts.size===0&&moved<8){ const r=svg.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top; let best=null,bd=34;
-      for(const c of COL){ if(c[3]!=="C"&&!show[c[3]]&&!flags.has(c[0])) continue; const [x,y]=PX(c[1],c[2]); const d=Math.hypot(view.tx+x*view.s-px,view.ty+y*view.s-py); if(d<bd){bd=d;best=c[0]} }
+      for(const c of COL){ if(c[3]!=="C"&&!show[c[3]]&&!marked(c[0])) continue; const [x,y]=PX(c[1],c[2]); const d=Math.hypot(view.tx+x*view.s-px,view.ty+y*view.s-py); if(d<bd){bd=d;best=c[0]} }
       fbCol=best; renderFlagbar(); labelScale(); } };
   box.addEventListener("pointerup",end); box.addEventListener("pointercancel",end);
   box.addEventListener("wheel",e=>{ e.preventDefault(); const r=svg.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top); },{passive:false});
