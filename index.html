@@ -1,132 +1,170 @@
 <title>Conquer Cambridge</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#f4f5f2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
 <style>
-/* Layout: sticky clock bar → stop-group tabs + departure board (planner on "Back") → pan/zoom vector map. Phone first. */
+/* Layout: full-screen map; floating clock bar on top; departures in a pull-up sheet (phone) or side panel (desktop). */
 :root{
-  --bg:#f4f5f2; --panel:#ffffff; --ink:#1d2321; --muted:#5f6864; --line:#d9ddd8; --chip:#1d2321; --chipfg:#fff;
-  --west:#0b7f83; --nw:#b86e00; --east:#b0306f; --central:#7d8580; --live:#0a8a3c; --late:#c0392b; --early:#2a62c9; --me:#2a62c9;
-  --m-land:#eef0ea; --m-green:#d3e6c4; --m-water:#a9cfe8; --m-bld:#d6d6cf; --m-bldl:#c4c4bc; --m-road:#ffffff; --m-roadc:#cfd2cb; --m-main:#fbe6a6;
+  --bg:#f4f5f2; --panel:#ffffff; --ink:#1d2321; --muted:#626b67; --line:#e3e6e1; --chip:#1d2321; --chipfg:#fff;
+  --west:#0b7f83; --nw:#b86e00; --east:#b0306f; --far:#5b5f99; --central:#7d8580; --live:#0a8a3c; --late:#c0392b; --early:#2a62c9; --me:#2a62c9;
+  --m-land:#eef0ea; --m-green:#d3e6c4; --m-water:#a9cfe8; --m-bld:#d9d9d2; --m-bldl:#c6c6be; --m-road:#ffffff; --m-roadc:#d3d6cf; --m-main:#fbe6a6;
+  --shadow:0 2px 14px rgba(20,30,25,.14);
   --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif; --body:"Source Sans 3",system-ui,-apple-system,sans-serif;
+  --peek:178px;
 }
 body.dark{
   --bg:#121614; --panel:#1b201e; --ink:#e7ebe8; --muted:#9aa49f; --line:#2c3330; --chip:#e7ebe8; --chipfg:#121614;
-  --west:#3cc3c6; --nw:#f0a53a; --east:#e86aa8; --central:#7c8681; --live:#4cd685; --late:#ff7a6b; --early:#7fa8ff; --me:#7fa8ff;
-  --m-land:#1d2321; --m-green:#22342a; --m-water:#1f3d55; --m-bld:#323a36; --m-bldl:#3d4642; --m-road:#3a423e; --m-roadc:#2a302d; --m-main:#5a5134; color-scheme:dark}
+  --west:#3cc3c6; --nw:#f0a53a; --east:#e86aa8; --far:#a3a8e8; --central:#7c8681; --live:#4cd685; --late:#ff7a6b; --early:#7fa8ff; --me:#7fa8ff;
+  --m-land:#1d2321; --m-green:#22342a; --m-water:#1f3d55; --m-bld:#323a36; --m-bldl:#3d4642; --m-road:#3a423e; --m-roadc:#2a302d; --m-main:#5a5134;
+  --shadow:0 2px 14px rgba(0,0,0,.5); color-scheme:dark}
 [hidden]{display:none!important}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:8px}
-header .wrap{padding-block:0}
-.hrow{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-h1{font-family:var(--display);font-weight:700;font-size:26px;margin:0;text-wrap:balance}
-.clock{font-family:var(--display);font-weight:600;font-size:26px;font-variant-numeric:tabular-nums;margin-left:auto}
-.themebtn{font:600 12px var(--body);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer}
-.status{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:2px}
-.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
-.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--central)}
-.pill.on .dot{background:var(--live)}
-.phase{font-weight:600;color:var(--ink)}
-.preview{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-top:6px;font-size:13px;color:var(--muted);white-space:nowrap}
-.preview input[type=range]{flex:1;min-width:60px;accent-color:var(--ink)}
-.preview b{color:var(--ink);font-variant-numeric:tabular-nums}
-.tabs{display:flex;gap:6px;margin:14px 0 10px;overflow-x:auto;padding-bottom:2px}
-.tabs button{font:600 15px var(--body);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 12px;white-space:nowrap;cursor:pointer}
-.tabs button[aria-selected="true"]{background:var(--chip);color:var(--chipfg);border-color:var(--chip)}
-button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--west);outline-offset:2px}
-.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
-.filters .hidebtn{margin-left:auto}
-.filters button,.btn{font:600 13px var(--body);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:4px 11px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
-.filters button[aria-pressed="false"]{opacity:.45}
-.btn.on{background:var(--chip);color:var(--chipfg);border-color:var(--chip)}
-.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
-.note{font-size:13px;color:var(--muted);margin:0 0 10px}
-.board,.planner{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.planner{padding:12px;margin-bottom:12px;display:grid;gap:10px}
-.planner h2{font-family:var(--display);font-size:20px;margin:0}
-.prow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.prow select{font:inherit;padding:4px 6px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);max-width:100%}
-.opt{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
-.opt.best{border-color:var(--live);box-shadow:inset 3px 0 0 var(--live)}
-.opt .arr{font-family:var(--display);font-weight:700;font-size:22px;line-height:1;text-align:right;font-variant-numeric:tabular-nums}
-.opt .arr small{display:block;font:400 12px var(--body);color:var(--muted)}
-.opt .how{font-size:14px;min-width:0}
-.opt .how .sub{font-size:13px;color:var(--muted)}
-.row{display:grid;grid-template-columns:56px 1fr auto;gap:10px;padding:10px 12px;border-top:1px solid var(--line);align-items:start}
-.row:first-child{border-top:0}
-.line{font-family:var(--display);font-weight:700;font-size:20px;background:var(--chip);color:var(--chipfg);border-radius:6px;text-align:center;padding:1px 4px;line-height:1.3}
-.line.walk{background:transparent;color:var(--ink);border:1px solid var(--line);font-size:15px}
-.mid{min-width:0}
-.from{font-weight:600;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}
-.from a,.from button{color:var(--muted);font:400 13px var(--body);background:none;border:0;padding:0;cursor:pointer;text-decoration:none;border-bottom:1px dotted var(--muted)}
-.from .walkm{font-weight:400;font-size:13px;color:var(--me)}
-.dests{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:13px;color:var(--muted);margin-top:3px}
-.tag{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:1px}
-.deps{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.dep{font-variant-numeric:tabular-nums;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:0 6px;display:inline-flex;gap:4px;align-items:baseline}
-.dep .d{font-weight:700;font-size:12px}
-.d.late{color:var(--late)} .d.ok{color:var(--live)} .d.early{color:var(--early)}
-.when{text-align:right;font-variant-numeric:tabular-nums;min-width:80px}
-.next{font-family:var(--display);font-weight:700;font-size:24px;line-height:1.05}
-.in{font-size:13px;color:var(--muted)}
-.in.soon{color:var(--ink);font-weight:700}
-.empty{padding:16px;color:var(--muted)}
-.mapcard{margin-top:22px}
-.maphead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-.maphead h2{font-family:var(--display);font-size:20px;margin:0;font-weight:700}
-.mapbox{background:var(--m-land);border:1px solid var(--line);border-radius:10px;overflow:hidden;position:relative;height:min(72vh,680px);touch-action:none;user-select:none;-webkit-user-select:none}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;overflow:hidden;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--west);outline-offset:2px}
+#app{position:fixed;inset:0}
+
+/* map */
+.mapbox{position:absolute;inset:0;background:var(--m-land);touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
 .mapbox.setting{cursor:crosshair}
 svg.map{display:block;width:100%;height:100%}
-.mapctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
-.mapctl button{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:700 18px var(--body);cursor:pointer}
-.maphint{position:absolute;left:10px;bottom:10px;right:56px;font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--panel) 85%,transparent);border-radius:6px;padding:3px 8px;pointer-events:none}
-.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);margin-top:8px}
-.foot{margin-top:22px;font-size:13px;color:var(--muted);display:grid;gap:6px}
-.foot a{color:inherit}
-@media (max-width:560px){header{position:static}.status{font-size:12px}.row{grid-template-columns:46px 1fr auto;gap:8px;padding:9px 10px}.line{font-size:18px}.next{font-size:21px}h1{font-size:22px}.clock{font-size:22px}.mapbox{height:64vh}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.ctl{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(var(--peek) + env(safe-area-inset-bottom,0px) + 14px);display:flex;flex-direction:column;gap:8px;z-index:3}
+.ctl button{width:44px;height:44px;border-radius:12px;border:0;background:var(--panel);box-shadow:var(--shadow);font:700 22px var(--body);cursor:pointer;display:grid;place-items:center}
+.ctl button.small{font-size:13px}
+.hint{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 96px);background:var(--chip);color:var(--chipfg);font-weight:600;padding:8px 14px;border-radius:999px;box-shadow:var(--shadow);z-index:4}
+
+/* top bar */
+.top{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));z-index:5;background:var(--panel);border-radius:16px;box-shadow:var(--shadow);padding:10px 14px;display:grid;gap:4px}
+.top .r1{display:flex;align-items:baseline;gap:10px}
+h1{font-family:var(--display);font-weight:700;font-size:22px;margin:0;line-height:1;white-space:nowrap}
+.clock{margin-left:auto;font-family:var(--display);font-weight:700;font-size:24px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.top .r2{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);min-width:0}
+.top .r2 .phase{color:var(--ink);font-weight:600;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--central);flex:none}
+.dot.on{background:var(--live)}
+.top .r2 .msg{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pv{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.pv input{flex:1;min-width:0;accent-color:var(--ink);height:28px}
+.pv b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* sheet */
+.sheet{position:absolute;left:0;right:0;bottom:0;height:min(82%,760px);z-index:6;background:var(--panel);border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(20,30,25,.18);display:flex;flex-direction:column;transform:translateY(calc(100% - var(--peek) - env(safe-area-inset-bottom,0px)));transition:transform .28s ease}
+.sheet[data-open="1"]{transform:translateY(0)}
+.grab{border:0;background:none;padding:8px 16px 4px;cursor:pointer;display:grid;justify-items:center;gap:6px;touch-action:none}
+.grab .bar{width:42px;height:5px;border-radius:3px;background:var(--line)}
+.grab .lbl{font-size:13px;color:var(--muted);font-weight:600}
+.shead{padding:0 max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px));display:grid;gap:8px}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;background:var(--bg);border-radius:999px;padding:8px 14px;font-weight:600;font-size:15px;white-space:nowrap;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--chip);color:var(--chipfg)}
+.peeknext{font-size:15px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peeknext b{color:var(--ink)}
+.sbody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 max(14px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));flex:1;min-height:0}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 8px}
+.filters button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.filters button[aria-pressed="false"]{opacity:.4}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.note{font-size:14px;color:var(--muted);margin:0 0 6px}
+
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:12px 2px;border-top:1px solid var(--line);cursor:pointer}
+.row:first-child{border-top:0}
+.line{font-family:var(--display);font-weight:700;font-size:20px;min-width:46px;text-align:center;border-radius:8px;padding:2px 6px;color:#fff;line-height:1.25}
+.line.walk{background:var(--bg);color:var(--ink);font-size:16px}
+.mid{min-width:0}
+.stop{font-weight:700;font-size:16px;line-height:1.25}
+.stop .walkm{font-weight:600;font-size:14px;color:var(--me);margin-left:6px}
+.dests{font-size:14px;color:var(--muted);margin-top:2px;line-height:1.35}
+.dests b{color:var(--ink);font-weight:600}
+.then{font-size:14px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.when{text-align:right;font-variant-numeric:tabular-nums}
+.next{font-family:var(--display);font-weight:700;font-size:28px;line-height:1}
+.in{font-size:14px;color:var(--muted);margin-top:2px;white-space:nowrap}
+.in.soon{color:var(--ink);font-weight:700}
+.d{font-weight:700;font-size:13px}
+.d.late{color:var(--late)} .d.ok{color:var(--live)} .d.early{color:var(--early)}
+.live{font-size:13px;color:var(--muted);text-decoration:none;margin-left:6px;font-weight:600}
+.empty{padding:16px 0;color:var(--muted)}
+
+.planner{background:var(--bg);border-radius:14px;padding:12px;margin:0 0 10px;display:grid;gap:10px}
+.planner h2{font-family:var(--display);font-size:22px;margin:0}
+.pbtns{display:flex;gap:8px;flex-wrap:wrap}
+.pbtn{border:0;background:var(--panel);border-radius:999px;padding:8px 14px;font-weight:600;font-size:15px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.pbtn.on{background:var(--chip);color:var(--chipfg)}
+.pbtns select{font:600 15px var(--body);border:0;background:var(--panel);color:var(--ink);border-radius:999px;padding:8px 12px;max-width:100%;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.opt{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--panel);border-radius:12px;padding:10px 12px;cursor:pointer}
+.opt.best{box-shadow:inset 0 0 0 2px var(--live)}
+.opt .how{font-size:15px;min-width:0;line-height:1.3}
+.opt .how .sub{font-size:14px;color:var(--muted)}
+.opt .arr{font-family:var(--display);font-weight:700;font-size:26px;line-height:1;text-align:right}
+.opt .arr small{display:block;font:600 12px var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+
+details.about{margin-top:16px;font-size:14px;color:var(--muted)}
+details.about summary{cursor:pointer;font-weight:600}
+details.about div{margin-top:6px;display:grid;gap:6px}
+.themebtn{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600;cursor:pointer;justify-self:start}
+
+/* desktop: side panel */
+@media (min-width:900px){
+  :root{--panel-w:430px}
+  .sheet{top:0;right:auto;width:var(--panel-w);height:auto;border-radius:0;transform:none;box-shadow:2px 0 18px rgba(20,30,25,.12);padding-top:env(safe-area-inset-top,0px)}
+  .sheet[data-open="0"]{transform:translateX(-100%)}
+  .grab{grid-auto-flow:column;justify-content:start;padding:12px 16px 6px}
+  .grab .bar{display:none}
+  .top{left:calc(var(--panel-w) + 16px);right:auto;width:380px}
+  .ctl{bottom:auto;top:16px}
+  body.panel-closed .top{left:16px}
+  .peeknext{display:none}
+  .openpanel{position:absolute;left:16px;bottom:16px;z-index:5}
+}
+@media (max-width:899px){ .openpanel{display:none} }
+.openpanel{border:0;background:var(--chip);color:var(--chipfg);border-radius:999px;padding:10px 16px;font-weight:700;box-shadow:var(--shadow);cursor:pointer}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<header><div class="wrap">
-  <div class="hrow"><h1>Conquer Cambridge</h1><span class="clock" id="clock">--:--</span></div>
-  <div class="status"><span class="pill" id="live"><span class="dot"></span><span id="livetxt">Timetable</span></span><span class="phase" id="phase"></span><span id="livemsg"></span><button type="button" class="themebtn" id="theme" style="margin-left:auto">Dark</button></div>
-  <div class="preview" id="previewbar" hidden><span>Preview Sun <b id="pvtime">10:00</b></span><input type="range" id="pv" min="600" max="1020" step="1" value="600" aria-label="Preview time on Sunday"><button class="btn" type="button" id="pvnow">Now</button></div>
-</div></header>
+<div id="app">
+  <div class="mapbox" id="mapbox"><svg class="map" id="map" role="img" aria-label="Map of Cambridge colleges, buildings, roads, bus routes and stops"></svg></div>
+  <div class="ctl"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="locate" aria-label="Show my location" title="My location">◎</button><button type="button" id="zfit" class="small" aria-label="Show all colleges">All</button></div>
+  <div class="hint" id="hint" hidden>Tap where you are</div>
 
-<main class="wrap">
-  <div class="tabs" role="tablist" id="tabs"></div>
-  <div class="filters" id="filters"></div>
-  <p class="note" id="tabnote"></p>
-  <section class="planner" id="planner" hidden>
-    <h2>Quickest way back</h2>
-    <div class="prow">
-      <button class="btn" type="button" id="gps">Use my location</button>
-      <button class="btn" type="button" id="tapset">Tap the map</button>
-      <select id="atcol" aria-label="I'm at a college"><option value="">…or pick a college</option></select>
+  <header class="top">
+    <div class="r1"><h1>Conquer Cambridge</h1><span class="clock" id="clock">--:--</span></div>
+    <div class="r2"><span class="dot" id="livedot"></span><span class="phase" id="phase"></span><span class="msg" id="livemsg">Timetable</span></div>
+    <div class="pv" id="previewbar" hidden><span>Preview</span><input type="range" id="pv" min="600" max="1020" step="1" value="600" aria-label="Preview time on Sunday"><b id="pvtime">10:00</b></div>
+  </header>
+
+  <button type="button" class="openpanel" id="openpanel" hidden>Departures</button>
+
+  <section class="sheet" id="sheet" data-open="0" aria-label="Departures">
+    <button type="button" class="grab" id="grab" aria-expanded="false"><span class="bar"></span><span class="lbl" id="grablbl">Departures</span></button>
+    <div class="shead">
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="peeknext" id="peeknext"></div>
     </div>
-    <div class="note" id="locmsg" style="margin:0">Set where you are to rank the options.</div>
-    <div id="opts" style="display:grid;gap:8px"></div>
-  </section>
-  <div class="board" id="board"></div>
-
-  <section class="mapcard" id="mapcard">
-    <div class="maphead"><h2>Map</h2><span class="note" style="margin:0" id="mapnote">Drag to pan, pinch or scroll to zoom.</span></div>
-    <div class="mapbox" id="mapbox">
-      <svg class="map" id="map" role="img" aria-label="Map of Cambridge colleges, buildings, roads and bus stops"></svg>
-      <div class="mapctl"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="zfit" aria-label="Show all" style="font-size:13px">All</button></div>
-      <div class="maphint" id="maphint" hidden>Tap where you are</div>
+    <div class="sbody" id="sbody">
+      <div class="filters" id="filters"></div>
+      <p class="note" id="tabnote"></p>
+      <section class="planner" id="planner" hidden>
+        <h2>Quickest way back</h2>
+        <div class="pbtns">
+          <button class="pbtn" type="button" id="gps">Use my location</button>
+          <button class="pbtn" type="button" id="tapset">Tap the map</button>
+          <select id="atcol" aria-label="I'm at a college"><option value="">Pick a college</option></select>
+        </div>
+        <div class="note" id="locmsg" style="margin:0">Set where you are to rank the options.</div>
+        <div id="opts" style="display:grid;gap:8px"></div>
+      </section>
+      <div id="board"></div>
+      <details class="about"><summary>About this page</summary><div>
+        <span>Sunday 8 Nov 2026 timetables from operator data via bustimes.org. "+6" means 6 minutes from where you board. Live delays come from bustimes.org vehicle tracking; each stop's "live" link opens its real-time board.</span>
+        <span>Remembrance Sunday: U1/U2 skip the railway station 10:00–12:00; expect slow traffic near Hills Road around 10:30–11:30.</span>
+        <span>Map © OpenStreetMap contributors (ODbL). Outlines are main college sites; dots are porters' lodges. Walking times assume 80 m/min plus 25% for detours.</span>
+        <button type="button" class="themebtn" id="theme">Dark mode</button>
+      </div></details>
     </div>
-    <div class="legend" id="legend"></div>
   </section>
-
-  <div class="foot">
-    <div>Sunday 8 Nov 2026 timetables from operator data (via bustimes.org). <b>+n</b> on a stop = minutes from where you board. Live delays come from bustimes.org vehicle tracking; each stop's <b>live</b> link opens its real-time board.</div>
-    <div>Remembrance Sunday: U1/U2 skip the railway station 10:00–12:00; expect slow traffic near Hills Road around 10:30–11:30.</div>
-    <div>Map © OpenStreetMap contributors (ODbL). College outlines are main sites; markers are porters' lodges. Walking times assume 80 m/min with a 25% detour allowance.</div>
-  </div>
-</main>
+</div>
 
 <script>window.MAPDATA={
 cols:{"Christ's":"qwD6iDgCBWGCFeAsCMBIMACGQACHiECjE4KzD8DnBiBlC5CN7GlBrE4BD","Churchill":"-e21BzBVoC5EpBVrC2E5D7BtBP5G9CqCxEOfTA7D5BGLZPJArBiCjCwD7D3BrBgD7E0JCmI-E-BiES8GCgCKoGkC0FuBgBGkDBiFrMQPSlChDrBmBlC1EpC","Clare":"o3CiwDGuCtBEEe_GWAd7HWJ3EbZBPiIDYTGkD","Clare Hall":"ygB22DJsBRmBFgBiLqCKFGrD","Corpus":"w-Cy7DyBVKiCqBBBRUAc0CEAcqBgB2DxCeL_BLGtCQZjE","Darwin":"utC82E4ChBYYkBQKADZZVHbjBpBRhBIXGFmBRgBFBPVlBWfEVKJiB5BPPhBiC1EsD7BsBDI8BqF","Downing":"mzD-1E9C_FwF5D6CnBPb2C1BiCXMUfQLMBDhBSKQWHcOYeQEYNWkBZOUiBPIEIOHcyBEBMSDCQcPGCGOHGICBoBqCCITMKAkD2FMmCAYHMhCsB5F4CtCcvCI7EhLENFN","Emma":"i2Dw5DsCpC-C9DOBsCYsCiB2D8BGMiD2B3D0GPYJFDIIGRcLCDGGETahC2BtB5BPMrBrBJOXUpEnHXtB","Fitz":"skB4xBwHrO2G8F3F4KhCjBd0B","Caius":"84CwuDyGHc_DrDbjCFxBGFE","Hughes":"i9EgvE1CpBDIGCNUECCY3BOrBehBoBGEDEOKqBvBYN0BP0BEabwGgEiCnDrG7D","Jesus":"wwDs5CKhEQDoBCQORiE0De-E0BwEkBGHWGBIUEwCKmBFQJWfiB5PBX9CtB9CGhBDnCtB3BddJjBDhIkCVOvDwEN0BlBYhDmBqBgFgB-BQHEIyBTGQMB","King's":"83Cy9DCSlBElDeDPhDeb1DPGPBBDFsBtHmBOvK8HVAeWAqGVDdyIZfsKFBAEAW","Lucy Cav":"s6BkiCIL0GqG5ByDlCV9G5BmBrC","Magdalene":"m4CqyCpBoBEGPSPLCJxBxBzBQrBFtCtCBFMNVVKJzBvBCF0BGsBJGWkBLHT2Bb6B-BkE8D","Murray Edwards":"6pBg1B6DgC1BuEgDsBEBeMGzBavC6BxEsEqC2BhDuEqDapBnBfEDJJDGdVsB5BtK1I3F4KhCjBjB-B","Newnham":"u3B27ExCIrBHfYXgB5CDAnB1CAB6CjDHFHexLwDGADqGBsKIJiFpFJFQEIOCEDmGMDiD","Pembroke":"slDwrEFEOaBIzBevBlC1BjDsClB8BnBoChC4DzBgBkCcwCU8DIU1DyBPhBlB5B","Peterhouse":"6kD8vEkBqBzCmCyD8DlBgB4BoEwBC4ErC6B0EzDeDPXICOtG0BhB1GVrBfzBhBlBHG5B_BSNjBpB1C7B7BlCoDnBW4BqFvCsB4B","Queens'":"swC0_DiDdEQmDdmBDG2CAUDAWmDGCEqB5CY7B0BlBUdsBRiBPSbIfCnCdrBjBFJGBhBxCDVItBYrBkBxB-B7BJtCI_BCEQCQF","Robinson":"irB63DDIJCjO_CIFmBjFtEfJuBhG7BU5C4BOWSkEgBgBjEGDmI6BZyD0BKaxDoGqBKGCI","Catz":"u5C6lEIE6EnBbnFHvCNAAIHChBCAH3BIAEJCAIJCAIHADINEQ4E","Eddie's":"gwBk9BGzBavC6BxEiJ-EoDrF8C4CHatEuHXFXUtB2C9BdrCVJjB","John's":"u3Cm1CGdUjBcWcdFFKJgD8CqE0FDULFHOMGlBsCLcCEDCFKEEDCAmBEQjBBCFlBRDE3BZnDzBjCTFeNiBXcrCmBxBOpBT1ElB_BLvBqEvFhDBnBgBtEe9CArEEfGPoB5BYVkBXwCZeiBGFOSWTJNcXRVkBfIMMJ0BwBJKWWLOCGuCuCsBGPiBuCUGAEVOEiBoBEMPyCA4BDEDiBcIMdGBAHIHNxB ohCioC4B5C1FnGXFXUlBqC","Selwyn":"2wBqjE9FQbsOsMMFxCcBVtF7BIJ5C3CK","Sidney":"-wDggDB0BHKpBK3BcgB6ExDiBHdhBjCjB1B9BvDHVEP0DvD6BrBuBToBDiBEM4F","Trinity":"s_CyhDjBBCFlBRDE3BZnDzBjCTFeNiBXcrCmBxBOpBT1ElB_BLvBqErCgIAMGISGgIC6C1B0BpB6GeEtCwEIiDcO9BAnBR_BHALvB","Tit Hall":"yvCqwDRAFjD8BpBCEkBXCEMNEEIJ-FWNkDdgBAQ","Wolfson":"-NujFKxBCDOBgBnGKIkBI8CMyFiBuBCK9B6CQCPiBGL0CRBL6BCuBGMTQJ6BrDXFmByBILiCNmB_E3B","ARU":"49Eu7D-CpE-J4DQrB4BQN-B2BOEHsBWzDkJFBCHpHxDdsB3BT-BxD"},
@@ -139,13 +177,27 @@ r3:"geqlFAA iWsnFCR mWqyFnBK ykBwzFrOlB oVw0FjDM9J9B qfqqFFe sd6pFUvE ga8oFIV kf
 green:"yV01FU4FK4H2JqCQR6B3FuBlJhKZ 4CsmFtClDXzBjBblBJpG8BrBExBJZO5CO2B2MiM1BwBcQe2DOsEFOxH9CH gpB2rGyBpBEG4C5BpB9BwBrBpC3EiDbXlC_HyBtCNVM5B4F wWkjGZmEnB4ChCiDjB8C8JwDiD9F0GwCmErEpI5GPSnBD sP8hF0BQCKkBLRSBWMSaOHbSEETLBCHITMEGXyCSIQRwDNGxH9CGhBIABMWE iV0-FN_EJBAIpFfGbnBFBKrETrE2RemDiL0BoEzHRLFPMzB oJw4F4EkB7B4H1EhB sOs5FoGkBX2DlGlB 2N29FkHuBdkEjHtB uM6iG8GuBboE7GtB sLwnGyGsBdmEvGtB oH8hGoEiBxBkHtEb i4C6nGjCsDqFsDkCrD uoCiwFyJuEiCOvClQnIlCnIwL o2CyxEGAJ8FiCmFkD2DkEsGxNnD9BpHoBvBCZJFPlBQLbjBMP-BcGZddJfpBzBFXIV2BVkBGkBewBI 4jD68FTnBnD3BBViEpHsB3DkB3F3DBjH4J5CiG8ByD-CyBwDaoCP -6Co2EILKnCArC2C8BkBqBRO6BgCIFiBmB2BgDiB2GyBgGtCA5BJBzBf7BfxBbJ_B1CaZhCxEjBrD 20Cg2FrCnRyOgDZmCpF4G1C6F_ByF 4jD68FqJ8ETiBlJnF qrDo6F5ByD5F9C6BxD gxD0zFasG5ES5BP3GrDGJPPgCtDmC7B-EAJY2CgB wmCimGfvCzBUfnB0HhC2BVmD9IsF8BS6BC4BHepCmCrC8B9C0BjDkB7BI uxCgnGpCvDsBXqFyDwKsGlBqCnCpBToBZMvBD_C9BZU i0ConGiBrBzEjDrBYqD-E 6mC47FaFDPZGDRoBJ0FmCnB0D1BWZFId3BRFPHCJrBVGBLLCDNaD qoCg1FwFwCyBHWIgB5CvInE wwC4iGyEtD8BxCDqBNYuBeuBC_BsCnEoC 0jC8rG2D8FkKjHwBrBpCtDtG4C gnCy6FFPwBlBH5BsDqBWzB2BYzBwErEzB 24BysFQlL4IQAW2BMV-ElDkFZK wyBu8EgBXsBIsCDN2MxFFQ7K 6wB4pG4E_BuB-EEmCHsBfkBrBUnBtCMB wjB2yGiD6CDcWPeAyBoBkCCQHiCpCoBXnBhClF3FxBwB ipBksGoF2FuEhC1DpH y4D8qGQuEzMxMUhByBA0F1B 6zEo3F-CLMQCoBWavBcPuBE0CkC4EmFjC2CiFtDsBlQqChK4BCINCGmBgBFKyC_EY3DtElFpM3BxGwENG2CyLvBR_CUBQ8C szDi4FmBArBpUVAHIYoIDsHMyBD2C kgEqqGiBLIrCNvBlBnBTxBtFWOoB2CkEiCiB -gE69FCePeLEPiBkDBkBqByBHKRUEJhDXTDXXCNUNARNjCI goFohG-BQ8BkBPkBzBXNkB0BYLc5BXPoB2BYNgB7CfEVJBIpBaR o8EmtF_DkCYqBUICcSkBWCgB9CDb mxEq9FyBpB2BHGeR4CbsBbJ 6qBi9DrJhCnBmHiK8BCvBPBCdSC -Si1E6B3JhDROhCxGrB5DoDhC-CrC0E -W8pEiDGQxC7HpBK3BtBCVsDqGkB mTi1EhBgH8EaQDgB_E0CQQlCRVO9C9CVkB5FVFDOlBFbSZDDqBdFGbTDxBwI uhBg7DhKjCb2EkK4B 0gBq_DpDRnB2GuDU 66Fg_FyBasDAwD-BBQ3I7B q9B44DQMQuCL-Be2DwGTKVxCtK_FG gjCimElDOPWPEc2GiDAakEoEDiCZKf5C_JXGCS5BIFfjBGBL 4vB6sED4BkBCAHQABe0BE6BNuBgBcBT7EXIxEFH4B qsB0sE4CMLiD5CFGjD 4zBm-D2EJA-D3IWT5BGrDuDJ wzBi7EaMsBBGOfErBHVQpCHDdOlCaH0BMSLmCGDwC 27B84ESACOKCIPGcQESBCRcAD2ChJDGrBgCEIjBcCANJHIJgBCD0B2BC y2Cs6D9FSFnGqFX wrCw1EXMTYDSzBKCgCtCBXVG7FsCFwCd w-CyzEeD6BjBmDmDe0CvCsBfzBzCtCSN 6jDw5EQDcZawBsB4ERkBLRULBLTL1BJONLlBGfXVAd 6iD4zEkDxCtB5BRIEKrCkBFJTIc6B onCg0DNwKuHlBCzBQFRjI u2C-wEPBVhBETXULAbFNTsBrCcRQMMFMoB kpEs0E3GhHzC5DENHNIFHLkDlDWhBE_BQvB-DzGyJuGsFiEFYrHqL3EwF 48E-nE1CiFZNAJuBpCJFOThCnBlC0DrBSRLapBDb8CjEgBC y8Ei-D8DiCzD8G_CtCLZAV o_Ek4EmCwBmBxBlBV2B9DpG7Dbc_BF3BWhCmCRoBN6BK6BmG0E 6oE2kEwB_D_ClBvBiE m2D44EjBxBfQwDgIuFlCRrB5BzBTnDRPNIEGLIJefSdJ 0-DqyEMUHMxBW6BoCoBqC-BXiBsC6Bb9CrFfDlBnC w3D0zEkB0B4DnCGLbxBJGFH1DoC g5Ds1EsB4BOqD8BwBqBQ8CtBhCzEjBlBlB9B m7D4wE3DoCJArBpCoExCqBkCJI 87Dw7DkCwCoC5BcM2B5CGPJFQbtBXXM1B0CxBa -1F2rE6BrHiB_F3CVW1F9DRVuFnCTzDqJWKKiBPIjBHFWYIIF iJkxCiFEiFkBrDmOtKvBAb0BpG3FtB8B7G 7BiqDoGaP-DnGX xFq-ClD8LHyD6QkCazEiFMWtEMRLFBjBhJxF idutDGbpCNBMJBajDeGBiB4BODQwCUJ6B 6mBs0DzCRTwBtBF7BYnDbSnCiBjBmBHHUmBMFUWIMdRFY9BuCF2BIS_COCMtByBMBMUYJ-BbBWgBFaNIDgC 8sBuhDpN1CjCoKyOkD sfukD6CUNiCOENkC5CTQjCPD sWi_C2I6BwBxGpIvC lEm2DJRGpCeVqIeQIIOF0CNUbE ogCktC_FxBdgEhKZNHfsSkBImIuDiBkB2FlEsBhD6B9BObUjDKvF4BtD -6BqlDiHYYsHxEQrJZQnD sqC82CxFlBToCyFuB 86Bk6CqDWlByFpDV u2BsoDpBsBRsD5EazCpBmBTHHGLEIQBCVWCYfuBLQnB8CnCWYZgBaCQN q7BimDvB6BE8BYMoB6BOGcrCiBKaiCaTmBYUdzBhBuBnCDV1BA o5B-1CPoCiEcQpC 86By1CdZThBHnBc_CebkBRoBDmBKiBUagBOkBNiDXgBhBYlBMnBB kkCo5CRuCZFDIdyEEe2EyCyB1E2BDYlE 2vE4nDpBqDtFpC7CgB8BzEwHsC 4_D41DXtB9BXtB8BnBXdoBuBsBIFIK0BEOLOO uvF-uCf_CNALL1BiBtCarESpCB_DN9DZ5E_BrFtErBxBnBlCPS5FrEalBpHrDIqC0GoOGkFdwMuB2BsESoDAWtIwG1B-DKuDTgEjBEMoDhByBXBN0H5B qqDggD1BxCiC7BgCnBoBJ4BCEsCpE4BNmB -uD48CG-CjC4B_BcTlBBjBYTKhB s7DsjDqFeoGHpB6EnEsIzBkC_DxBJf7C7BRQjBb u3D0tDHFGHrC_BK_BNJ8BpFQACHiEC 22Dm3CXuDtDbShEuCKBOiBEDU 63Dy3CkBKGTUABUSAAyCPDDKUGBYMAAU3DnBWhD 8zD-vCkBsBM2BF6C_BJRPnBBd_EqDU whEmsCkEuBIOnBwFpEDCpBVV qgE07CuEQORSnGdZjEBHGDmCMe 2_DuxCrDBXH_BxCvBRSjChCRYfoFC-E6B 26Cq3Cb8BEQMCPcjChBNxBAxBU1CYULQeYFKgCkB 2rCu6CBIsJqCCpBNPlGvBhCI 60C09CrJtCHCTmE8E2BmCAyBb iuC6tDhIECQcaK4EgHT wlC4sDmIGNzFpGVxB8F -oC4gD5BwFkGWyB3E uwC22D0FPJnChFSJO ukF-yCwDrBmBmEzCiBZnCTI 67FmrD3BhE8CdjBhDeLRvBQHkBmDakBuC8BY-B s_F47CiBkD8F7CSRVjBdD unB2ftG_E1JsQqH6DiB9BHBEJRJqBzC4BHQdFF 2Mo_Bf3C4C5HyBV4HqDGOjEmK 0as5BDK5BXZ3BlCdGN0CsBY5BGCQboDgBTyBNDFOtCdZiC -X43BOsBwDuBfwC9BXbkCqBSlBiDkCcELiDoBKXuDuBoBhDKEcjCKExCoGjDCzGzBnGjC_BJ7GBhER3E5BBnIkC1CoBtCmBhByBRiBjBkBmCuEsCBSKEOLqBSyBV4HqD uHq3B4D4BzC2F3D3B 2D-yB4DgCvDwG1D_B iS20BjCfxBY5BXCXdMxDlCHNEJIS-CoBWHuBrDwBcRuBNFHeVJHS2BYROAWMGMRaJoDuB 1C4cnDoFkG2DWNwEuDcvB9BrBbAZdHfzBPVjBKxBZbe_BzBjB 2mB4rBmB3BCfetBARtCFAVvBDxB8CByBMDqBkBKJ g3B02BPsBMEVkCHBHclBNtB2DhDlBgBjE6BxE 23B-gCsCgBezBKTLBDUfFGZLBSlBDlBNH7CgBDKwBSBIQENaxCfDIPFCHTHKXKEctCrBPtB2D2CiBKkB uiC0nBuLOGQiBJU1DjNnBByBaESSVWRPFG i0BsyBjBkCoEoCgB5BxBZGL o7Bg2BIJ6BqBtBsC1EzC2BhDqBgBPJRa2BkBLQUQWd kvBy4BJWnBRLPnBoDiE2BGzBrBNaVIbFXMEGNdNEM woBmvBFMPLiB_BoBSIXKKQDBTRBSdJFYT6CyBJgBfERcyBuBHYNIPARMPHPcfRe1BvCrBPe ugE85BBmCIuByFuLSyBHCDSvCb5DChCzBjChBrCF3HiCdWvDoELLxBqBhIrJGNXLTlB8DrDiCpBuD7BgFhCuDhB0EbmFB i4D8tCzElBQhC2EoB khDygCsJ_F2FvCoElBMyBhKyC1BuB_DwChD0C m-C4xB3CwD0FsEoFzEpDjC yxC08BWwBOHSoETwBbEhBzB_BRHbmBbVpC g8C4iCsBoBEPqBsBpBsEPKVkBrBnBZclD1DiC9B 42C6mCSaHGamBhCwBKYXWMMMLaeIJIIehBMKsB3BlD1D kqF8nB2JlDgBYOP0BsBYXOMUbkBalBiBgBoB1CmCY6BnHqEJRkBVnD7ENnChDa uqGq1BjDoIhB6BnD8D1DmCzBlGmE9C5EzDkD5CRX0ElF 89Fi4BqClCRX0ElFmGsFTqBTJbiB7BqFVgBTEtF3D mxFqrBhBhCiEhCiBgC 6Osf4F7IyBmBjCwDyBgBFQlD4E LiZ1B8CkBBoMwIyI5N3MxK 9C-bhIIpL7H2CpE-C8BuDvF0BWgBlCmEIBaOOLiEiEgBIvCgBhDwDMIGRYcYUXwBoB k2B4SrC4E-L4GChCRBCrF stBLrJmLwFyEoJ5K ilEsMtH9InDqDhIpJiF3F0E6D-LsO khEyT3C3CUVpC9B1C0CiCgCPU0C0C srCwYcvEWGU5D9FlBZoDgBWyCabiE 8wFqD4CmDyCvD8JtFmHjBlI1JpL0J7E2E q7E2UzCoCsDkC6BvB u-CozD3BEFrB w8CgyDtEQEkBwEH 28CszDEmBJAIgCqBFMjD m7EkGYcMJXb s7E0FRRJKUO",
 bld:"-Hw9FKpBFBELTDDSJKXkDaGIrBKd if4mGIGkBTLXbBRK 8W64FQCCiBFBBUZBGzBLBEVSE gfozFvELASuEM 0c0xFoDKBQlDJ ggBkyFoDKIEBKtDH uCgvF9BjBHMbLWlBQILUmD4BFKZN 2jD6tGpBTKTkBUmBpCGfIEKNtBVFMpBVObuBaCHsBWHWOG5BmEVL opD-hFoB8EZBTKrCKhB5D6CVP9BgBF 8lCs9FaFCMWFO-BTEHjBXE mlDkyFXJf6BuBSOjBLJ khD-3FXwBcOQfiBKObVPJW 4iD83FMXpBNYrBOIEMQSQNMKZcNiBRH klDiwFeCB4BfB sjD2zFmBQXuBhBN ylCs7FiBLCIaFEQZGGeZEEOTEFlBGHJEDT qjC47FO8BeFJVEADPJCKFFR 4jC49FY-CiBLDPPEBFQDDRNEBFQDDPPEBHODBP -gCwyFASwEDBT yjC83FCeYBALQBCSeBBsBkBDDbcBAjBdBAIJGBLZEDhBTIEcbBBGDV wnDuvFAXRAC5BpBHP6C 8iB4gGiBJEJKBKLDP5BO -qBqkFBKfBBOXBChB0CGCgBOAAOrBBCPMCAT 8lBwwFWETuCVD siCg8FoBuFPKBJNEHfSDBFPEDNOHPEDPSDRADNQDRADPSDPBDNQDNADNMHNEDP -_By6FGeuCLJdbICKJCALNCAKBL 64BoyFbBANMCHFCPICHFAJKCFFAPKAAFLBCNKCCHPBAFQCADOA o-BuxFOCHyCbFAJQDHVIAFDCRICFNIA qgCmwFTaCWFOkBEDVGCCRFFWJFFGDEGOLAHPVJCZU i3B49FKG8CpEXEPcJFHMKI 08BsuFBWuBGEHJYaCElBZGCHfEAJ 80B67FIU4CdHT s7B81FMvDVBEYTBBOOCBQICHWGAFGCc y5BgxFRmFcDCJHAITHFMCAFLJKRHBGBDPMAALJFKCAHJACJIAFXSCAF q8BsyFSAAKKCPCBWIABQQCBMNBHOPB 0gCsgGbCDPMDLADNMBBHREBLODAFJCDNIHJCDLMBBHLCBLKDAFNEDPKFSD o-Bs5FWQAYTNIKHMJFDGKGHOJHGKFMJFDEKGHOJFGIJQJFIIHMHFGKHMNAKGHOJHGKHOJHBEIIHMJHIMHMJFGKJOJDOKHOFDJQLFBEKGHMJFTYJFEJ 22B-iGbbGJMIJHKPMKJLKLMILNILQIEDNJILQGLHKVIHOKEFNNQKIJPJINQKJNILMIAXMKGHbZEFeUCDHFILOCZXEHSMMPKIFJINMCHFINKGEFOK wrBiyFZcCoBZLJYKEDKMGEJUIIXLFEjBOIUV szBqkGQUgCjBPVJGAKNHLIHIGIHF u1BmhGSPFNHAGDDLJAKDFNLCMHBFRVFEGFFNHEGDHRHEIDHNHEBRHEGJDJHEARTK osB0gGUJCUIDGODIMFIQNGEIOFCGHECQOFGMJKRI 80BgiGZIDJIDBFHEAVJECRJEFJIDBFHEFLIFLGFPGHHEFLGHNIBPKDPCBPIDJCHNKDJAHPcL 0jByrFAITBBQSCBKqBAAGUCEfLBBQBFhBACP s-Bq0FAgCbAKVLACHKAFLGDJAKJFADNcB 0tBq-FfOYwBcL 0sB8sFUAE0CTE wqBmvFUrCSCTyC orBowF8BDEYjCCZHIV izD-_FTIFPZIDLaHTADHSFLBGRPEBHQDNBBHMDHTWH ovD68FpDUN5CuDD wuDupGIGGHOSXoBdR ojEwkFZIGS5DoBBJREnBhD0EjCeqCwCpBSkBFEEIlBUQqBfO ugEomFSmBkBJDLsBNFVNGBH 4kEkoFWL6BsDTM gkEmnFiEnCQgBhEoCHAJR unE0mF-ByDUL7BxD 2rDslFKBJxBtBKHbmBHJpBfECIFCBHNEHb0CZuB4FlCSHb 2rDslFBJhBIJnBuBJKyB gwDsiFc0DdIDLKBFXLEDRHCDJIFHZMDFRLB kgEomFIcKBEO_BULtB mmEwjFbMUwBeL yoEyiFJGEG5BcPbMFFJMHXjBePaqBHEEGYD -mD0rF8BCBc5BD ipDsuFjCBKnBQABYGAANYFFWWA wuD2vFiBAIBBPQBAQOACQNAAQNABJnBE moD6oFCHnBBFmC0BE svD8nFgBHAMDITCFHBSRCAFxCMFJBNkBCBJ 8vD6oFSAG0CTA 8rDwtFMFCPSAB8BdB u_D6uFMBCKuCNBJMBGaKBDTQDEqBPCBJFCKcpBIBLYDFd3CW k0DssFW8EYDV7E 80DulF2CHCY1CI m3DorFqCDEYtCC mkEouFKBJXoCTBHYFCGHCUuCPEBNrBQFVVGCKNC 2oE4sG2BFAKQBBJFCHvBGBAFNCCI1BGBR0BLcEMgCFU_BMJD kqD4nGaOHObPIJFHTHOrBMCDUKC 8wDgsGVbeZciB wkEyzFxEaEYMFGGAHCIUEBP8CRCMGBBJKB q3D21FcBBjB8BHMqClBGEU2BJBFSBDTLCDPOBFhBPCBRODBT3DY 6gE43FWNAFhDKDMAH9BGCQgBBEYiBBIFBZWBEgBfEEa0BFN1B 0lE03FDd-BHEe 2kEizFFjBIBKSIBBLGAEMOJCIIBBHKBCKIBAHUEBHKBAIKBBHIAEY k9Du2FBJJCBJKBDPNCERIABPJCBVYDQ4C s7Dw4FGqBcAaNBHMFBNvBGAJ -kEwzFEYEHGEkBJCESFCKGAAHUHeEKJYEBHQBBP ggE-zFDPoBDBHKBAGIBAFUCBFMEBHYCCS koEk4FCS2ETBR slEm1FCSqM7BDVFGxGYAG5BEAGhBACG9BIXB ilE-1FDXHCCGrBADIAHVIAFXIFHFKbABGAO kiE25F6BHJvBfCDKPC o9D-tFYFFHDLIBBLHCN9BTE u-DkrFSiCYFTjC w3D0vFEeMBBLqCLDR giE-rGEiBmCNCSUBH9BPCAM gtD6lFQDEOgBHTrCfIIeNE 6rDgsFC-BREDKhBBGIJKPPCrByBAEf wuEy9FmBFPjDlBG mwEknFDHJGFNIFFHYNFFQJEISLSeRMEINKFJ wgFy6FT2CbHIlBhBHKtB yjFs7F6BORwC5BN g7Ei5FDayBMJoBaIKpBaGEZ 8lF-7FgCORwC_BP gvEilF2CvBLV1CyB ozE40FkCTSyBTKPdFIpBE yyEuxFOHGKMFkBgCPIDHlCODVyBF gxE-tFcHWqBfS yxEyvFWLQe3BaNb ysF-4FRqC7CTQ_B0BMEJ ymF0hGVgDjBSc5D kkFokGNerC3EgBI gnFigGFajGrBGX sgFwjGQHwBqDOFEKZM sgFiqGHPKFlBrCJGHNcN0BsD iqFwsFMlBsBOFUMEFS miF6yFFY8BQGZ 82EoyFMWNIxB7C2CvB0B8CPKrBvC3BgB gnF8nFwBtDOGtBuD 2yEsmFiC3BgBmBPMRVzBqB s3E8lFmC_BOSlC-B -0EitFgCnBMW9BoB q5E8mFNOVdsBtBcmB -iFilFqCtEQIpCuE 6jFwmFuD3GeQFMPHlDqG -rEm-FJlC1COHjCyETY6EbECKjBE u1Eg2FQHUiB_CKBPkCL s2Eq6FwBRgBIQMXUVEVF kxEg4FIyBsCLHxB 6tEgwFPrBZIFTsBNWgC gpE-sFsBNVnBbOJT8BhBKSRKgB4BUHGU_BWCKRG s-Eq-FmCsENInCrE 89Ey-FQHVnBcLPRTKCKLTNI wrE0kFcNayBZO 0tE2mFOcvBcPb ggFwpGCS9CMBR w8E8nGGYlBIBmBJCBDbKFZfGHlBgBDCKYDBN 48EotG0CLES1CO 0vE2yFDb8BHEYNCAIHAAJJAAI quEs1FI-BaDCMmBDJpC sqE0yFGeIBCJWEBHEGiBFBFWDBR mvEoxFHVXKBHLCCIJCBLLEAKFABLJCDOJABFRKCS -jFwqGQauBbgCYMbrCX mjFkpGLZ6BZO7BYEN8BJQ sqF8pGbLqCrFaM 8oFw6F1BNclD2BQ okF-rGOYeRBFiBJDP gwEiqFTIFJbMRbyBV qpFqoGPiBxBVQhB 2qF-gGwBWNgBvBT 2oFolGwBUNiBvBT gpFytGgBPTlBObdNV0B 2lFitGWLMakBRKU5Bc -nFy_FatDyBMDOSECNiBIBKKCRuCrBJGbRFLyB 4oFm1FFasFoBGZ suF01F9EnBSRaGAF4CaIbeG ghF86F6BMRyC5BN s_E8sGWDK4CRE kR-gFEfqBICZpBFK7BNLhBDDaWEFqBVDBaWCFgB qY89ECLjBFBKPHDUSAJ6BkBG ubyhFWEEbICApBVDFgBDA 6bg9E6BKDcnBFAKNB oQ6gFTBDYWEMKKFcCIX 0Rq9EoCIEZjCJROCO kaohFAITBOtCUI 2Us-EEVTDEXsCODYjBFPyCTB 8hB64EmDMBgBlBFCQLEHHGVNGnBJ 6aowEyBNKiBzBO qTsoEaGLgCZD ohBkuEYEEPQCDQQCBW3CNEVMCENQC 2c0xEyBNKgBxBQ 0hBkyEKEBUPBAWrBLIrBGCCJSCBO kdouEyBNKiBxBO siB-5DBKJBBI5BJGhBYEJM 20F25FME1DoIZJnB6CPFUdYlCaIc9BLFwBpDSIUlCIR 8sFskGZNe5BaO y2FinFHAFSKCBGLBDOIUNDDKMQRGBGOEPIOEBGJBDOIGJBFUMENCDGMGNBHcOELCDKYKgC1G ywFwuFjCTMdSGFMUHCQIEEJOE w4FsgFfqDOGiBrD ozFsvFzCbENGFSGBGEDQEGKCHeC myFqlFsC_FgBMDMNJBGOGBQTDQGFWPLDIQGLQMGDKbGMECWVJOKDOPFBEOMFOPHBIWGDUZJSMDI i3FstFECHOHFJOCQNYLFOXHFyBpCXPmB7BFDGJSMjB4BaS -yFipGuBUtCyFlCdEJTJkC9EYKgBrC4BYJYfN o3F6sG8DaJyB7DZ q4F4pG2BOJsB1BN s5FwmG6BQLsB5BN i8F4jGqBKJuBpBJ k6FoqG0BMLsBxBL kiGmiGrBuFlBJsBtF y2FspG0BMJsBzBL u6FwgGoCSFWnCR q7FgnGqBKLsBnBJ 81F4sGPoCdHEXICKtB 06FsjGHcKZqBKLsBnBLBHBIlBJGbVDEP y9FsnGkBODQVFHiBWGDQlBB suFykGMBKK3CoGDBPyBRGHN 6zFm1FgCevBoD_Bd o_FssGfHCLbFBOjBHDUgDU qvFi8F8B_DhCf9ByE swFk0FX4BsBUKXXDIRDFGEIP 67F87FLmB2CJWqBiBNd_B 69Fg3FPiB2BOIjB 28Fu5FLkByCADjB 48F6-FHeiDBId ouFw-FVwBfLQpC0BG -uFkmGHD8BnEaK2DnITHUpBECLccM9D8IfN u2F65FQIjDiHPF 86Fk3FOGvBuDNF s4F4lFoBO4BzFpBL m6FymFoBWoEvGvBb q6B-7DgCACKMAGZSAANLAI7BFHHAALPCA4ClCB q2BijEEYkBDEgBIBAIlBCBkB4BDDjBSAF9B w8B2iEeCCeW2BCgBfDBfTxB o8ByrEBRxEQCS 85B6pEYnBYT6CJI8BJGhEIEF k-BotEYBLjDXECKfEEUcD g5B4vEETeBAOKEAuBZIHF 0gCwwEjEKCkBkED ogC0uECwBqCBBvB y0BgpEFTMNQDBMKGIDDaKEKqBVCBXFIZD 08Bi0EF-DYCG_D ojC0zEkBAFoE7BBATsBAAhDbAAP -2BinEG2BDNHAEsBSBCUcDahBBXNAFtB 6rB4rEsEKANQCBgB7EL i0BknE7CILhDYJBNiCH qkBykELkCZDOjCQCCHIC -rBwwEBYWCBSmCGEtB5BDHHFK krBssEF6BFEGOF4BUCG5BFBAHGAG_B ioBspEiBEL2BIUZBExBFA s6By4EmBCAuBrBD w7Bu_EiBCGIFqBlBBHjB yvBilEHqCPBBiBsBCDhBInC osBonEBW0CGAV m4Bq4EbACmBTBETXAEwB6BEIf o1By0EFiBiBCCrBcCBkBKABKHBBYtCDBZFCGnB ozBk1EIFB1BnCAEQFC1BBNBCVdBBoBWCAOyCEWDIMaD g3BiuEUBK0CTC q9ByuE4BFDbTCBHHCAIXC -0BylECOVACINCMiBoBDF1B i6ByiEaDI0CZEG2BVCJ1CYD guBs5DQDFVuBGGgBPEBMRCJJJA 4wBi6DCSODDNWDQkCREBP_BMEUPCFhBaFHlB mwBm5DmDGBSjDF q_BkjEmDNOmDlDO unB8kE7DVGbiBGAGyDQDSaGHiBbFEbLBFaFB 6sB27DBSRBCnCWADsBICCWwBHKW7BG wkB0uECPQEBQYCCNQCBQQCBS3CNER slBuyEKEDUNBAWrBNGpBICAJSCBO 2sBi9DHEAOKGFMSBANeJBwBLKJeC6BSECXFHKDANHJQFFXOBFZIJBdJBDJRAJM qqBw0ELEBYQCAMGCAGHAD0BIAAIHAAMNDDceCCVQCDjBIRFJK9B okB83DVFVgDaGU3CGF 2qBk7DE9BHJNDDsC 8nBg9EzDPBQ0DQ y_B2gFuDADSPC5CD 4kBk8DqDWBOrDT -jBuiERDCNSEEPmCOFiB w8B2tExEQCQyEN ijCwiECQkCLDb3BKCMFCDTHC yqBqgFgBCSSKNZT1BABkBLADuBQACjBSC w3BkzEmBCAK4CCFqE7BBCNkBCCvCtCCHFBnBLA irB2lECTaCAGKABkBHAAGdB wzBq0E2CKAJiBBCP5BTHGzBD 8jBsqEBeqBICLWEBMoBGGDEX 2mDgzEEDwB6BJMHDZaoBuBcZuB-BjC-BKMNLXUpBjCIFHHgBXDFKJbfFG5BhCuBnBFFML -2Co6DNvEcBOuE 4lDqrEyBVGFJP5BcDFHEEGHEKS wgDmxEdMhBtCkDrBGO1CkBWyBOF 2rCkyEHV0BlBSWHM o4CitESyBqBLBRKDLHEHRhBIFFJ1BS 89C0lEmB6CQFnB5C 6_C6jEAIJCCOKBCIgBAGNaDJhBNCEUFCBH wwCwhFBShFhBGR kmDy-DaJEIwBRISBI5BeJXJE w_CiuEJTqCdMYHECGFEHNDCEIPIDH 88C6tEW4BzCiBpBxB gmD0-DEBGcbOb_BeL guC09EMCBmBIsBXBBMjCJIVkBGKzBIECNKC 0oCi4EwBHI0BVEFVHACWRCLfKA -mD4hENpBzBaQgCUJFVWB gjDs9DNZuClBKUzBWEK wgDk7DUHAIWCCIGAAcxBA ioDohF3CWMyB4CT 88CinEOkBjBMThB qhD-qEIU3BeHhBqBREI g4C-nENEIYNGMsBcD olC0lECSIECTQBEWKBDSpBGJpB umCsvEMYGABNSDIkBrCKFdFACP 0sC-yEsB2DRIpB3D kuCwvE0BnBWa1BoB 0qC25EtCAAemBEDRWBAOKAALMA k0Cg_DCcGSIBKgBpBOFRWFR7B -2C0-DES5CYDP -vCorEzBAzBZARQFWY0BM0BTsB1BKIrBgCVIJMNE uzCykEwBLCPKBGY3BWesBNKlBzBOL m2CgkESDDJOBGadIMyB4BNLxBQDOgC5CYVjCAN itCwmE1BgBJTMNDFePMA s_C-_DU-C6BNKACO5CWZjEWF -hD88DOBW4BTENtBrCGBNkCDBRIA 0nDixECHYJLZXKVTmBNDJ7BgBuB4B ohDmwEgDrBISzCmBCGFDnBSHP -4CmjEJ3CUBI2C s6Cy_DCU5BIBXQBBHmBBBLOBEQ 04Cu-DULAHKBAHKF4BHCiBoBDCU7CKAFhBEBP u-CkkECStCUATYBDHaFAE s4C06D-BPgBBAIkBFAcfCCIHABNpBGDOjBKBLhBEDb 03C27D_DQBd8DD yzCw7DXCBPpBGCUYDGiChCQQkBYFPNiCLHlCWB o7Cq7DG4BhCKJfCZUBBLwBH s9Ck8DbCBNFBGxBaB q5C68DhDMCSiDL -7C6oEIWxCUL3BSDBJKBCKGBKkB i6C8nEwBLMqBpBOJjBFC 45C-nEBHLBKFFduCRMqB 08CoxEIEYLQoBJCIIFMtBdOJ 2jD0-De-BWJb_B gmD27DZ1BwBXiB-BfQDJ 04Cs4EsBLNtBLEFV8BRJxBMAIfJzBLDHVRGJbJJPGUwCRGWwChBKEKFCKsBJE kmDo8DagCZKZ_B 8iDq5DKUIAiBNISYRHNPINfFO glDs7DVKJVoBTYqBVK ogDyqElBSEaQDDLqBREIIDNfVK wyE2vEoC7DOINW6C4B_BiD 44E8nEiCoBnDsF5C3BOVsBR ooEm_EEOTMDHFEFHQJHLIDPdHGNVyBdMULImBwBLIEOHI g8EmwE5BApBKhBUpBwBNJObiBhBwBXkBFBFiBCQICHMCDSGA 86E27EuBhCYSxBoClBZEF w7E68DduBTLKNdTMTeUIL q1Ei9DeWpB6BKIRWjCvBQVsBcahBPL g1Ey7DYhBsC2BXiB y0Em1EUGFyBKciBmBmBYLSpBbnBtBHlB ivEqiFIDlBjCmBRwB4ChBUJNdWRdaN upEw6EoBVEKWN-BqDNKGKcPUe_C2BrCnEAHOF 49Es-D6C0BKP3C3B 08E69DmB9BmBWtB8B kjFqgEjBVZkBNJiB1B0BiB o_EqoE_BlB8C3F-BgBHQzBZlBqCeGJUVPdmCyBa qkFwiEdPHORAHMJFYvB6Be 4gF4nEwB9CQIvB-C qmFirEPHmCnEQI 0kF6pEgC5DOG_B8D 2mF4jEUKHQGEINMGFOECINKGNe3Bb imFykEObHDJKGNNFHOFDINNFFOHDINLFHOFBFO gqFynEOItByDPF yqFsuEJHKTOGCFPFQdMECFLFGLMGJJEHKGEHPDMDBHKEBXKEEFLFGNMEJJCHaMhCmF gqFwgFmC_EQIlCgF 0qF60ElDjCILmDmC qlFwgFmCnEOIjCoE 6qFm6EZR0BtDMItBoDMI uhF0pE0C2BJOzC1B onFqvEQFUMd0BZJ -nFigEFDIRaO1BoDRH 4jF4_DiDyBVuBTLKV5BbJUTJ wpF66D8BUFQIGXkC_BbKXnClBUxB8BS inF05DP2BZBNTNDRGHFHOVLiB_B mpF0_Da1BkBSLUIEVe sgFy5DWOjBgCZR -sFqiEQGlB6C5BdIbuBU giFsxEtCrBWjBWMNWIGEFoBaCKKDaQLS g2E2_D8BsBbkB7BpB k0EkxEeSbsBbR 8xE-xEWUPQMKPOfV myE8vEmBWbsBlBV kuEk1EqB4B1ByBvBvB qnEogFgB6ByBdHLjBQXnB isEm5DoBUYxBnBT ixE06DGELScS-B5CxBbEFPJHCrB-BcS -pF0hEYMCHOGDIGCFQLFPiBIEFOnBT k4Ei6DRaKIIJDMQKGLIEFKMIGJGEIN g2EkgFyBdKGESnBaPF kzEg7EMFFVMFQQMFMWtBY 4yE01DKN-GyELS 6yE68DNJmChDOK 06Eg7DWOOVUMMRUMrB8BJHFItBd kjF46DFKpBZZsBcUNWaQwBrC o4Ew6E2BgBrB6BPRYfdVRWRRclB 05E29D7B0CeW8B3C m4E28DUOlCgDTN qkF2-DbLJRMFFPXNctBIGTgBGGKNQEEOFMKIIPUES1BaCFcFAtB4C skFy_D6BrDkCgBjBwCMEPiB wpE-2EnBaGMZQHNJGXtBqBPGOmBZ ynDg5DjB9BaRoCoDrBedtB 6tD-7DdiBPR_CpEEVkBFKY qiEqgFoBRMgBKJGGBILACGSHKY7BcJVOH y2D4tEpCoBHPmCrB g0Dm2ElBtCQJoBuC y1Dy3ERdiDxBQc m6DwtEbvBAJQJkB2B u7D0sEVjBgBTIMGDIeHEEI m9DkzE7C9ECHaPQOFEOYGBIMJEWmBOHe6BwBbKQFEFJLIGK 4jE-7ENZXKFNuCjBGOZMMc isD-vE7CoBrB9CmCdIQ1BYc8BsCf iyDqnEgBLW4BfM gvD4oEMJCE6BZOcjCcQgBhBOJHANPnBDCLlBYJ u0D2pEHTLH3BeDJlBQc8BKDKSmBPTtB 2uDwnEmDlBBFYJLVjDsBJVRI wsDqkEdjCwChBGQJECKLBbQUuB k0DsnEKW-BbJT yvDksEGQJEEKKDc8BoBRFLQFJXXKTrBEH s3D0qEdMGKfOLZgBNPhBfOJZ8BX o1DmmEVfnBSJVCJoBPNtBYJqBkCNGS4BRG k2DykEMFmCmCjBQEIRGHRPIXxBGDJVOFNbGD 62D6oEUecLCGyBbLhB 6qD6kEiBoCUHjBnC 0xDm2ESmBVMJTRHSkBOHEKjBMzCtFkBNEKJEQiBWGOJQgBGB3BhDkBR-B6DbQJPFE g0D8hEPKPRHACJblBhBQAIJDlBSNAFNuDvB 4tD2kEbMKYuE7BJXlCWCG 4yDu-DPf_B5CiBbISsChBUmBHEQeaLayBZU 8sDg9D4CwCyChBNbhCtCnCgB 4-D4-DPPiCxBMSVYIKZkBNMRV gtDq-EFCEHFJDECHlB_BaN6ByDXM 4wD0rEPlBtBaOgB g0D8hEQUnCmBJZGBDHIBCG u2D-gEPKKQXQpB1BQLIOeN 4oDqiEpBSPjBQFTrBeL -pD2gERrBdEU-BTGKY2BTLhB 4qDyhEJEHZqCbhB3CUHUUSsBoBMIWhBAGK 8rDm0EoBZFLIDEOQJMY9BkB qyDs6EV1BhBODHPIcgCQFQoBkBR m1D69EUuBiBLOgB1CkBLZRIRpBQFFL 0tDm4E6BbKUKDOcRKDHxBW kwD05EWwBKDMczBajBrC 2yDm7EsBVDLWJjBxCnBSekCbO uzDy-ENfPGRpBMDDJYLKOiBPMkBgBPOmB 42D4sEoCnBKQlCuB y4D-1EEBQYbYDFRMPb q3Dw1EtBrCGBRhBLGJNIDDFYNsCiE k9D8lEaNDHiBbRVhBYJRXQ 8uDuiFAGkBHX7CXGCOJCCIMDCOJEOMJECIMBJGCKKDEO qpDg6EGHMEGcNCEMrBMFTYJAP yoD6kEKDJXmCfHPjDsBWoB otD6qEKDDTHENfSDHtBvBSmBgDFCGQWJ yzD--DYJKUEDGcVMHDTjB i8DiiEIPkBsBrBiBZrB spDksEQkBzCmBPlB -uDyuEjB5CVIkB8C i5Dg-DJPiD7BIMNICI glE66DGJGGBJEHGECNYMpBmCZNGHGEAPIEDJOF w7Dm7DNENV2BfMU w4Dw6DqBfCGSJKQjD6BJP m4D26DjB7BRUe2B ugEihEJOZTSVgCuBTaXPOR 8sDg9DehBFHsBb1C3D9BsBQYRO 86DqoE-BXMUrBcXGLTKD k6DmjE5BeLXMFDFuBV 69DqpEawBVMTFTf i7D4kEqBoCfSpBpC -_DotE8BsDXOFHNIBFQF3B_C u0D0-DGQKDKUaPDHaNLX i5D4lEKUFGyB4BeHzB5C uzDi3DauBPKGO3BaDHTIDJPKRSOcNIRT7Ba7C9DJX-DvBY-BQHGQmBPIU 0-DylEsC7BeUGQpDuDHLJGRdIFJP o8Dk_DQNoCgCNQ u3DsgEHCLToBbYqBZM 21DyiEDFULGZiBZSIaLWoB1C0BZZ 4_Fy6DLtBcFEM0BFEUlBKBFNCEO gtF85DsFiBBMrFjB m3F27DZDFgCsBECPTB yxF0qEMGrBwDNF wuFyoEaKBINFBIOEFOLFDGOGJaNAMGNeLDDIKKDKbJ qtF4sENFfuCcKEJLHQGILRFCFWEHHMXNFEFMGEF 8yFurE8CkBFS7ClB 01FstEPDTgDIGGC osFm7E0C9FOIzC8F -qFmwEOTGEDG0C4BJM k0Fo2EiBYGVTNGdSEEVZF 4yF-xE7BVR6BMCKdkCWGV qyF-vEENQGVkCQEKfeIJkBNADSIEJeWGgB1DNHBMdFIdtBLPsBOG 8yF63EUZmBeFGYQESNDFI9BnB o9F89EIN4CsBHOdNBGDJJFDIFDEF 24Fm5ES7BYIP6B q-F65EQGHYWILoBbHCFJD 2qF2hEQbPJOPKGYtBhBTKR4BcRkBWMJWZLb4B 86Fq_EqCmBOZpClB yY-vCDBShBSAWSPoBHCfR qakxCOpBSBYQNqB oc6xCDBOhBOAEHSGDKMKLiBHEjBN qZwuCMP4CKEiBVW yemzCSzB2BSR2B qFuqDeEDaKDqBKFyBXBEZNBAIrBH wZo0DeAClBcPgBMMblBNNKFHjBUGKNI ggByvDYKiBPGObMPuBZHSjBRF uWuiDGbqBKIbQEHmBRDDS 6SgyCnBJERLBEV2BO yPy1DEZKCIhBMEFgByBKFcLBAF gO40DM7BwCSDK_BHJsB ygB8rDGFiBOL6BHEhBL yM0vDGV4CUFW yI-uDGdqDYFc mN2tDKZiCYHa 6jBo0DMJqDWEVSNYBA3BODG1BPbEVKpBIDWEYiBN4HrBkBlEdNBCNJJbF q8B-yDTAAxBcGKDOMCULMND 05Bm0DAd2CBI6BLAHPJAEXzBABO 2-BiwDHH9BCBRuCDAKOECO w8B8vDFGAiB1CAATkCEBfODBJMA gtBiwDYBiBKCJsBOAYPBDSVFFSpBLHcZH 2tB8nDeCCLMCBgBPAAINGBWPB gwB2nDOBGRWEEiBZWLACNFMXBBTQB 4tBwsDSPHPaCCZHFJECFPRRQIIHQGIJQ guB2hDYCHoCVD wnB2uCYKNuBGABMHGTD 6-Bk0DDhESAEiE s_Bk0DCMLGAMvCFAPgCAIH u5BmvDAXsCADW -5Bm0DI0BgCAAHMAAY5CCHlC ynBo_CgBGK7B6COBQLBBMQCBWJEXHBVdDH0B7BF mrBohDqBIFc9BHEb otBmxCVBCuBKIAO5BBAVMCEvBFShDJCLiBCAT6DKBIWBAO koBuyCCdOCBaUACbMABeFEGAGiC5BDHf 8tB22DCmBOAAI-BJBnB 80Dw0D-BpCcxBhBlB1D4DaqC 0kDw2DMaoBVkBnBZzCxBBlBKKoDGM y6Dq7CAILACdDGNABLUAAnBiBAAqC y-Dw7CAYpDBALJAAJ 2xDkqDDQbFQnCaE izD0lDBhCVAAZqDIiBMDWJBDYICHeNDBKdFCTLBAU upD2gDnBnCSJiB4BIECQRK moDykDZOFFPXEJHVbjBWN wpD6rDSDEQSDESTECQnBCHjBYF 0qDo3DRASZlBzCRKDNjBONhBCP6GjCaIISJSLEMeFQIUkCTMKjDuBKU ouD8hDhBSDcVOLTQRHN2Bd g1Dy8CKlBKEBGiCQFUJBBK ozD2gDGb0DSFe qkE-iDCkBtBCAPdCDhBsBHBU olEshDmBKAGJBHgBWGDQFBJQZFAIZCMzBQEId ssD04CGQVIDHPIhB_B8CdQ2BVGAK 4jDq5CSSWLKIKFIKFGKAGGFEMI-BpBNXXSLHNIJLFETX 2wDiyDKiB7BSDLKBHX 2rD6pDBFoBR8BPFTxDiBMe ozD2gDBSbDFO2EECL isEkvD7BvB3D5BGL4D8B-BwB isEyvD3DpCDM0DsC 6oEm0D3EpCGN4EsC kuDuhDaTBDOPSFYYVSvBW uqD2hDWsBZSdrB orDqmDAOLVJEMSJEIQIHKIVWhBjCiBP grDinDkCxCJRKFOejC2C wtDqmDCPHFMPICU4CRE g0DiwD3B-BSWNMlC5CARgBhBIIdgBuB4B2B7B 0zD4vDMNYUwBzBOOlCmCVTGH m1DupDF4BZBInCaC 8zD0nDGLOCBiB_CNAT 8vDomDDJOBAKMAApB_BEMsB -oDy6CzBkBThBgBXGKWP 43D2zCSGB4CRA s6D6xCBqERACpE 87D24CwCCAShDBClBQA i-Du3CD1BSACnDPAATkBBAyETAFKIkCRD u5DowCDQ5CXEP 6zDovCHgBTDY7CkDaJmBRFCR3BP 45D22CARaAAIMAAKUAAUfAASbACTTAAR i2Dg0D-ByBGFKIVaddJOjBZGJRNSV 44DoyDJF5BuCTL6BtCHDSXMIDG-BoBEFKIRgBLHEJ whEo2DDEDHKTsCoBJS snDglDaNEK3DoCNXkCV 6jEovDILPFnBwCOIINWKGLVJIRYMGLXJ klEguDwFyCFQvFzC 0nD0vCOUQFGQbKNRVOOULGVd qqDowDMgBcJLfmBLEIQNjB7BzBQDLfKcsC 0sDysDuCpBM6BdKfmB wuDstDeJA0CFGbJbf mnD4vDsCTPpBREDLPGJPHCEKtBIM6BWJ 0mDi7CHHHCrC8BQamC1BHL 0wDm1DLZuBbQgB ywD-4CBKvCFCPSCAH-BG 4wD62CnCFEgCRBAHFAB7BIH0CC kxDq3DhBQFPPGX7BYJIESqBSH k4DwvDMR8C8BJU olDg_CftBmC1BHLONHHKFUiBIFMOtCoCKI mnD88CQUzBwBLN izDyhDwDCAQxDB u-DgjDzCJFW2CO 2vD8kDUAAhCfO 4zDw1DwB2CSE4B1BXPhBgBJTMFd5B kxDs3DgCdKU_BgB 2yDw1DOe_BeLb 2uD2qDJEFNVCzBUYwBuCpBEZ 2sDspDiCTEiBnBQJLLG mlDk4C0BnBUazBmB gpDipDqBTS8BTGFNJE -oD2oDxBYRlBUJISeN ypDwvDFJlCSCEPCIEDYuCRCKOF omDusDLbHChB5CgBPFPkBT6BmE koDyqDLhBoBNUe 0wD6lDIBAekBIApBNBH7BgBBAb_BCAiCIA o8C4uDkCFCcjCE g8CkiDbBCTmEEBW 4-C6pDyBOX8DrBEAHeFQ9CfN -jD-sDKctCeDLyBPHR qhDyjDBYMmBFCKBKUJEMkBbGF9BN7B wkDylDOFEKrCsBZxB-BVGOFEDFnBSMW k2C2zCjDjDMLmDiD iiD2vDAOOAAOLCCMvBEDGTDBrB 65C6vD0BDBb_CGHe 0gDmrDHkB-BGEjB5BL 4iD63DBLaFIkBnBWLhB 8hDokDkCjByBBEOjCkBxBE -5C4xDMBBrBwBDBP7BE 67CwxDCS5DOFtCeFAMNAI0BOBCHII khD4sDCoBNCAIZMG9B -iDosDTrBdDBMFALPGVkCQcwCTK s9CqrDA5BlCHAQ2BGAuB 26C4rD1BBIpC-BDBsCQBCQfG gzC4sCbYByCUCGnBJHBbKFEGQJ yyCqyDEmB8CJCOvDMDzB g0CywDoBDCU5CKEhBIACIYBAFIB ugD02DNCCeGiBODEKWHBJIBDPbG 2zCwuDoBCAUPAAgBZA 8-C4kDBWVIIQPgDRDKVElGQCAcIABKHABqB 27C0_CGNwCqBMbDDIBALOVHFQPQItBmD s8Cw8CxCrBlBqCoD4BFO3D9B0BlDmD2BLW m-Cy5CRiBPH2B5CMO y-C84CmCkBIKJSvCpB k9C2gDDG3BZxD3BCFIEEP-DiCDI wyCw4CGN3BNDMGCLyBbHa1CFAGRQGAY4BK2CcGLSAA4BJuBhBHW9B1BPDUnBJ kyCm0CJgCRHFMNDCHTLDKZFEJULENULeKKN w6C0zCXaTTcdFFKJkBiBTWHHQN 85Cw2CbRMVqCoBLY 2_Ci9CMGONDLPHEHTLFKjBTGJVJXsBQIMH s7Cm5CJSSEJSLLTaPHQbLBANKFIMKR kwCuzCuBOQNiDaHoB0BOBSjCPKnB3CVJOjBJXL 2vC6zC_B8B3C9CSJqCuC4B9BSQ w8CszDGACoBlFWBHXEBjB 2iDu3DFbJCAF3BGIqBcFEQ-BTDL w4CssDNACLXDBH5BDANkDM 00CqsDVEGFhBbUR6BIAaKEJAAaPAAN iiDknDOFIWOFDLWCHNOHOarCmBdCGdcF 03CykDCFaEGMHGFmBbFGlBDD y6CgiDW9BiDoBBGhDBAW u6C8oDtCBCTyFGJW m4CwmDJqCvBFG9BWECP 23CskDJDCHvEhBGVqBICJKCBIkCOFSuBQDO y_C-2CRdgBTGIULGMRMGK inDstCOKzBsCNP gkD6pDaLkBkDfYX9BKD 8gD69CXmCiBOOxBIEGX wgDyvCeITkCICDMjBL g7CoxCQQiBbkCUGZvCX 4gDqmDC2BN-BvCXCTwBKMTAnBdCALOBBXqBD giDwpD4BJYiCJEQqBLGd1CNJlBB shDw4CSXwBjBiBwBhBeHJRMEGTO 0xE8hDoGLCKgBDC8B7FGBfrBC onF-vDGEuCNDTxCO 4xEunDmCDAQdkC9Bb -wEymDHJDzBiBDEgC kkF8kDgBBCWKAKsFJAAMMBAQdCDnBfCEqBXAHFFnDIABXHCDxB0BD w0EinD2BENmBTHEJRCDKLD 89EmrDnBqBtCnCIHTNQZLLSP 0oF25DQxBVHNQICBIHBDILDFO 4hFk5DaQQX1BhBNY 0nF25C0BRMuBzBI gpE4iDKG8EPCUlFK qpF88CgDPEaLCAKIBEWZEFfXECKLCBJZECKNCDbMB 2lF2_CRCBNbCBReEHdaB 6lFo-CeDFfcDEULCCOJCIsBtBE snFu8CoBJD0CXAAHHAAFOACrBPI 6gFk-CG0BEIYBAJKADzBJCAHRCAI uxEo4CJkEPAKlE k1Eu3Ca2DNEZ1D 21Ei3CWDOuCTE u_EqqDONWWjBoBXV w_EmwDlCfNeIEEH-Be w6EusDHS1BVY9BSIPsB sjFswDWWNSjBRHKRJSZaO k0Eq0DQXFDHMHDKfJFRWDBGLHDDIfTJQ 4zEmuDmBSKPTJerBDDQTAJTJ 89EuxDRHEJLFDKHBEJTJDIFDAJLauDwBGJJDGLPFDIALLF 24EmvDFMyCiBEVTCEHRAEHdLBILL 4xEw2DgDgCMR_C_B igFm1DcQWhB3BdJOaO -4Ek3DsBaDGOIcbTNFStBf k6E-1DNJDIXNEFLLzBjBFILJJOkCkBLS1BpBFMMIPIiD4BIJLHGJKGIJMI 23E6sDXJFQHDAeIELADKKEFQHBDYJDLcKEJBDKaK owEgoDQGPmBMEDMJFFOKEFMHDLcIEFOFDFMPH -oEspDFQIMGFFMICEJCIMBJWGEKXBQICELIKGDDIYCHSKEOPgBOBIICCFIKCFOGIP wuEksDmBQLQNFHQEIFBRqBVJ -5Eg1CeFEQJCIAGOLEMCEKLECIODEMNECGKBEMHGNE ghF8zCKiBSFDNIEOJagCQFPxBNLDT k8Ei8CQDBPVnCRE ijFq7CEW0CRNVdKHDFGBFJCAG o9Em4CGUGBCIMDBHaABHSDCIWNCGQLFT u8E6iDwBDBnBxBE g4EwgDCYyBBAtBLCAKTCAK yyE09CCS-DRFVPEBPJCEQ 22E-8CEUkDTDTbKFHCKREBLHACKFH w-E0yDLadLCJBGXFAFHCAJNCCHFBDGNFDMFBITFBDGBHJCJJDIFBCHZLbEEVjBPEL i2EkyD0EgCFQPFLQIRlBHCL7CjB q4E0yDOTSIBEQADKGEEHKECFBKOGIJKSGLGEJe y8Eq4DkBxBOIGJbRPEhB2B 6zE0sDzC4EXNKNIEEFFBIPenBFDGLIEIdGEIf giFm3CoBLEKXKEKQFCGPGICDMQcHECIKBCKJCCGIAAIVE khF8jDTFSRQcMAAIkBDBLgBBBdqBFAFkBBAGwCDMfaDMOAWOAEgFQOPQZTrBCCSVGJHBiCGQHMVCAIbCBVFAAe5CIZTD_BtCBLLBdXCBRPAAFRABkBpBCpBfHrBbCFjCQRkDHQQEoBmBBBRyCFCH 4sE0wDjD8FLFiD7F 8qEukDKCBIqEqBAS5EtB kjFm3DdR0BzCaOGJkCcDUNFDQLDAGzBX yoF0zCJjBYDBjBUDWkC oqFs6CJnCuBJGUNEE4B usF8rDzCQESGEuCN yyEmlDCoB-BDBhBLCBH 63EmlDCgB0BDBffFAI y1EwkDvBCCYMBCiBkBA u1Ew_C7DMCamBHAIIBAHGACeIAERAQIABbqBHEQARIA y-E0sDNOXXNMFFkBpBiBgB 21EqmDmCDD5BlCE i9E8oDGFOOQRMMNQKIRUjBjB uiFotDKJKKHIYYRSLCpBrBWV szEusDHDKXICATICFHcjCOHJDEHWI3BqE yuFwsDWDPvCTE gxF-rDPvCVEQwC 4yF0rDPzCTEQ0C ovF0vDSDR_CTE -wFqvDWDTjDTE 0yFwuDUDPzCTE y5FkkDkCXYmChCY 6_FkkDqBNgB4CbKRxBNG ywF4kDJNhBuBEcOOeBWZCX y_FmrDQDGQ1BQJZGRcH g1F4wDmCBAY9BAAkBHA ivF4-CiBHDpCcDGgCKKOCCYPGBQLENDLNfE qtF8gDuBFT_ChBE y8F45CgBRO-BhBMDLMDFRGBDJJE q2F08CUEmBuFlBWFVOPFdBIbIGcLCThCKFIQgBHL9BVKTgBRPclBcHFV 2rFimDHMSKcnBDXvBMGa i0FmuDMBGTQBAKaQNWHDCMPCBLTF y1FsjDdzCQFWgCKDGa qzFkiDSeTKOclBSxBzB2B9BOQJKII 4wFg5CbGDPgBFHfiBHGcLCCORa m9F2_C4CnBIO3CqB g4F6-CiBFKuBfM iwF0yChCQHhBeHLxBMRUK mrF4zCiCPTxCHJVGIgCfI 2sFs4CuBJd1DtBK isF41DDURDCLMCEXJBBONBHsB2BEGjB -4F28CGYuBTCKUFHZ g-Fm5CmBJCI2DfO2BlBKJjBZGKqBlBKLpBZGKoBVG qxFo3ClDaHfkCRLzBlCSHhBsCTBPYF -6F-7CJ5BjCUWyB yzFymDxBOJWKG6BP gyFwmDGNsBfuE5BQMCKpCUDIhBMBMpBOHOnBK 2gB2oBBJsBFQIPetBGDb 6XsvCBGfTBHUjBCjBGDmBAGGH2BVqB yZ8tCBrBsBBCsBPI sb8tCMpBmBIEGFmBFEdB wdquCFBIlBsBGDsBPCBGTD 4gByvCVPBbMRcDUOEcPU rCovBQAAUeAAHIAAIQACnBMAQUCkBrBCAKPAALXIAHTC sjBqsBWM5BsDTJ iWy0BFDJekDsBMd 6f46BHmBuBSMnBkCcEFKEIPLDEFJJ7DrBJiB UylBqBgBVepBf OgqBEQ4CAAe3CAAWSAAcRAAWSAAepCAAdcABnCXAAbaACNADbAAvBOAAIqCAAoB 0f-7BjBJDWIGOGEJGEDMaKELMGBIuBUEJGCDKgBIITRLLA -cggCQrBLFMbTFVmBQKHAJY wWyzBOXyCuBDIIIHO wJ4uBKEGPIEEDTHDKTHKXKEEJUKDIUSaKIRWIDKKEJWLDFKPFBKKGFONAcSHYJDFKTJENJDGPJDDMPHEJHDNgBXJGLJDITOCEJOGEJHB kPiuBFBetCWKjByCNF 8MiqBgDoBHQ_CjB ud0-BkBOFQFAGCJajBN iZ61BGNfDCHNFELjBVDILFJY 4M-jCJiB6Bcc3BRJDQXHDM ud0-BkBOIdMCAHRFEJHFrBLFQQGLc 6gB4tBoBSHQlBTGGNaVLOZGALFGL 8nBilBQBKIAKZIFMXAAONAHpBmBICJMA glBmtBUK1BuDTL 4qB2mBKRyD-BJSdPPaOb 2oBouBNamCmBOZ 6kCw1BTUwBsBKDKR uiC6yBYILiBgBYRWrBfENHD y8Bk6BR4BIQNOrDlBIR0CWW5B 81B8-B0BMUMMTjCZHA m2Bo6BeKW9BDDXFJaHB m5B2yBrD5BObgBUFKIKiCkB ssBuyBQdUKb2B3BbMV 0nB2wBbLGHhBTiC5DWM5BuDiBU ynBkyBTJiB5BUKTkBwBaNW kyB0xBHOKGf8BTP6BlEGEGJQI 8mCy7BUP1B5BjC1BbGPmBOUSlBKB-B2B i8B41BGHQUSIUZnBpBDGLHZgB i7Bq3BTPMP1BjBSZOMFI6BsB y7B4kCODOSjB0BXP w_BmoCVkBGIHOKGHMQIQdIESfFN ggC8tBgBCD-BdB -_BuqBdBAjBuCCBkB 6iC8oBBoENAGnE 80B69BEHICUrCWHISXmCFBFM whC65B6BoCRO7BnC gjCisCiCUIRKBkCYNgBaIDRICO1BKPZHHiBRFIFKbALHDTuBHDOtBdJLebLJmBPDBIhBJ ulB86BX2BZJY3B qlBwlCjBdJlBKdSIHSIgBcU4BEAS smB28BLcYaAgBXUZBJaQGsBHUTObAbJX g0B0mCEJVHGPgBKLWYIAU5BVGR iwB43BWnBLHatBWMVoBMGZwB 4yB4uBkBhC8FkDjBkCVJe3BxEtChBiCXL g6BqyBKODOaOFQ7BfWf 64BwyBFMBPhBPHKJFJSMEBMcQSFHOMGWpB w4Bg0BNaLFGJnD1BON mxBuuBFKVLuB5CeJMKAWJKZCCK qrBgnBxCyEUCiBYJQlBPCDhBTyCzEIJ 0wB8pBpCnBKRsCoB quB4pBf4B7BhBGJZGVLmBLQKUlB klBgsCXFLgCYEAZKCCLJFGC -wBimBYTKIDOIJGEHKIGKNMKJOIGKNKKFQLQ uzBkoB6DmDKNGLFFJMFDMLFDJMHTFIFFEDHFIHFFJMHRJEGFLJIJFFNQELFFFKBHVL 06BiuBqC8BQRhCrBIJNL -3BunBeYYBoBvBTNfqBZV ggCq_BOQkBdFHcXDD0BpBQSbaFHVUGGvB6BacROfhBDGJJJV i_B4xBoBmBKBG9CfADoBJA q9B83BYOfyBXP 09Bw3BuBlCyC2BtBmCTLgBvBnBZdwB 48BqnCaEjB-BTNIRhCpBGFJHQNmCuB 0jC-iCXhBHGXbTSceIHYc g2DsxBPSgBmCcKmChBLtB3BNHI qiEw4BbdOVUIIHSS 4jEs4BCrBiCcBuB 2oE07BPnBUJMQcDAeNABF m_Ds3BArBOAAHWAA0B ojEyvBGQlEuBFR6CdDHKDEK m9DyzBCgBqBDASOBD7B -5D4mBGSSGuCvCR9BRDPOOsB u5DynBONNvB9BP3B4BOyBSEONHbcdYGIe 45D2oBgBfUEEStBwB7CXDTMN gnEgtBaHJZUHc0B1BU 2nDi0BsBwBTSrBvB 4pDszByDyD5B4BzCzCoBjBff 6-DujB8CiBduCjBLavBpBPDIRH m4D41BWJIIM8BPGDPFC -nDk6BJR8BlBMU ukDu8BNVMHFLKHQHGKyBfEGKFXlBIFiB4B 0yDsqCoBKP4BJBKhBTFJoBLB iuDyrBiBvERFBcFBBeFKEAHQECPsB -2DwqBOET4CTJCLGCDFILBRGCChB koE86BjBHAHbHCpB-BU 4nEqmBcAGjDXCEqBHAAKKAAIRGGMJEGGLAAI gmEyoBWIFQFDGGDOLCKEDMLAKCFOHDIIFOXJ omEoxBQJQoBeHBJLEBHIBDTMBAb9BU 4iE41BcFAMMBBJOBAIaEBHYBBVjDM omE63BYMCJLAKfJAIDFLQAAbPAALMAAXLFSJAJRAKFBLHFIACNJDPA 0hEwzBWFEKIDEViBPDLMCEKKDDNKCCHDPtDkBBkBMA k_D60BCcmBAA9BLAAQPABTLA 0tDg3BIOmChBHPLGJPNKKMFEHLNGIOHEFLLI yuD4xBmC0CSJLdHGXnBHILNKFFHLF -sDqwBuDiERGJPHGPRIHJGAHXTLfjBZ okD0sBuCUHcLDALBMPDENFBDQHBCLFGVF yrD2mBZyDPDFBCJICFDQpBLDEPMECHJBGd -zD2wBDJvEhBFSWAGQgDQBIMCCJ ooEorBfDALIAHAAJKDJAAHQBLBINLNYAJDAPKCCHMA m7DowBtBJHe6BKEV umD6yBSKQbeN0BMeiBQPhBlBhCNpBS ugEguBuCzGPFtC0G w6CktCOGejBOMhBmBAMLMdR m6CuqCWXMKFQOOQHKKTa w0Ck_BML-B-BQaBmBRAEhB wgDuvCMvBMHqCwBPWvBlBJe qmCs1BWWYVHHcbXZXYKK qnCizBYWONIGUTIGWXXXNOHFTUHF ktCyzBUZYSHKWQHKWSRYXRGJVPIJ 2oC6wBaSUZ0BcMPBJbLCFvBP yxC02BaN5BhDHEKSbSKSOH 6nC62BiDjDDsBzB6B 8qC2zBDsB-B4B5B6B3B3BpBBkDkDiDlD syCwoC2BlBFHGDXd1BuB 8uCmlCWTHHSLTZPMHHXS ozCklCzBsBxB3BOLMCIUIBQQYd y5C0_BILDDWRQKIDKMLIOSgBZKMjC0B 6hD2vBBLlBHERiCGNkB k7CgrBnDZEPmDa -0CipBBSrCH_BIAIFABXqCF gpCwqBJVYLEKefQa 20C-nBQ5BgBEN2B m4CgnBHBBgB-BQCLMDDd7BN u3C6sCHHHKZdLMLLYVJHZcUYGFgBgB m8CugCGQZKPMEIZMNR u4C6gCNOPL8B_BOM k4C4uCyBtBMM3B6B3B5BgBhBMMXa oyCosCWNMIEGPKUQAKOHGEOLtBxBhBW 6yC4uBLHzB8COI woC2pCSXsBiBHKMILSNJIH urC0qCYSsB5BXRJMMKZeJH owCqrCoBbbbFEFFfaME m_CssCsBWEMPoB1BTGPWKITnBVGN 6zCkzByDwFuF4EYRDFJIDTHKpC_BGHFFFIEJLJFIHHIHLHFIJRFIFDAPVFGHLCEFNLGPHLNIEHPLIFFJJCIFDHJGALHAIFHHFEDTFEFTJBKHTHMHBF -sCgmCVHkBhBgBmBdYTP i6C4zB-B7BOOHUJFEMFGHHHIGIFMPFKKJK m2CowByBuCaPRZCHPKEJNXJGOTRCFF ikDsqCYaHKNLDEIIHMJHDEKIJOLJDGKIJMJHDGKSFIbX -hDgsCRNOHFDKLKCFFIJICAJKAFFKJKAFFEDSO ugDgrCyB7COIGIFOHDGEDIFDAOHBCMFDEIPOGCFMFBDGIEDG 0gDgnCLFUhBoBcJiBTLCFPJ kgDwpCZHY7BYIDOHBBIICHSHD s8Cg-BpBsBOSgBZKMIFFHGJ 61Cs4BJCHXHGHPGDbjBGDTROPkCmD y8CsvB0CYDQHGRDELFBBGPBHIBPDEDHRC 67CixB3CyCPRUXMBDFKJGGCJWLJJIHKKIF m-CmqBvCTSlCsBKDSPBGMFEHLJUsBKInBJBCFkBKN-B sjD24BSWyBlBPV 4rC6zBgCiCDQnClC -8CmuC0CYFY7Cb 89CuuCGBEJHBOXLFSdLDnBmC i5CopCcZrBvBHGIKHKIILI w6FsmCPjCuBJGWKBKuB ghG6vBhFwFZXgFvF 49FwpBGaZECMtBIBJJCBLKBDVIBCI 48F-iClDYJnBKBN_BIBBJuBJCIMBCKaF owFu1BXDIvCYE -xFu3BzBFDkB0BG 69Fm7BbZWXccKJOOhBiBWWOPMKzB2BJJQPjBjB -qF49BDccCBiBcAG3B uoFu8BDiBkCGEhB wtFg7BzBDBWOCAISIlBFBOWKgBC uwFq6BCjBKXgBEKSXSRDCQ wrFmnCQiBIDGOSHFJSHOkBgBTRnBJGLZ ypFypCSkBOHEKSJLfkBHPtBjBWIQ w9FmkCiBHMuBjBI q0E2mCjBZajBmBaVkB y1E2nCKNIGSXUOHMOKRY g4EmpCSnBkBOJsB -5EgqCGTKEIZoBMNuB q8E4qCMtB8BQLsB imF0rCPnBMFHTUHKWMDQkB 4oFurCV9BgBHW6B ixE4jCIXUXoBoBDEZHLc ouE8jBYCLYMAAINAOEBMLEOBAIHAAQFAEqBICEUJEDFREBN -sEyjBWCDmDPCAFXHGZSAAHLAANKA 6uE0tBOmBmBLJnB wpEulBcGAKPIKGFaGINBIGBMHAAIKAAOJAEIFSKABIVB orEmvBIUgBRGQQFFRODGUOFHRIBEMIDDJaBJbrDmB uoFgpBaFbtDTEBOIgBQDGcNE 2hFkpCDSeKkCCETvBDAJDM ikF4hCYFJbQNHPVCHIIYLECO wlFo-BgBEGhCHFXC ipF2_BAmBqBOEXJADV okFu4BHgCASIACFUCKpC ixEmwBIayCNYLJR g1E6uBR1BePW-B whBkYwBqBoBtBNLZgBjBf 8coaaOelBHFEHNHDGHD nBsBoBoBUZJJEDfb gBiCKCoBoBLOFBFInBfIJFF yNiiBOKUdSMMTnBZLSKG K0KCbjBbTYXBBa shCmPavDvBJN6B5BNHgBMCFa skCiJfCAJNABKdDHtB8CQ iiC0HEVgBEOxBsBKNoC 2_B0UKbTJITiDwBBMPDPkBdNEJ s9B2RMbMFwCiBEOJaTHGP1BVJQ 86BsSSpBwCiBVoB olCyUJwBmBGDSrCNShDmDSFiB 2iCqiBBWmCGCV 6jCifDkB8BECHKCCb yoBiewBmBWbPLFIFDGHNLFKFFGHHF g2B2K0B7BTRDGIILFHMIGPEGIHFHOFFHIGGHK ovB0U4B_BQOPKEENIEGHIHAIIHILBIGJM m6ByjB8ByBQRjBVEFLHHCEFLJ i4B-hBiC0BQRTFEFRFGFHFFGJPFCEFLJ g8B2cJUQKFIUKEHQIFISKGHWUILDRlBJEHjBLEH mkCmchBBCZiBCBIOHOCEKCLqBODYtBPLINJ 06B-OWIFOIOLQnBPIVOB 04DolBUEOLJtBUVsBMOLDV9BNzB2B ovD2aORKKKJgBe3BkCPNTYbb 0qD4TkBkBVYjBjB uuD2UVapBtBST u7DgNQQuB5BQQDIQKajBuBpBrBlBSR_BlCtBwBGGjBmBOOFILLLMaYbUWUiBjBLLOLAWSOdUBO grD0kBQEMvBMEDQSGEJECKlBTFDQPDOzBRD y3D0gBUU3B4BTT upD4bRULLadvBtBUX0BuBiCnCXXNBGVKANNcbyBsBcdKK ynDyZZevBnBSTIGIJ 01D4jBjBmBOMHIIIsBtB o_D6esDmEXSLRTS1BVJInBxBKJTX orDodPSHJDGpBjBKJFFePMEOUFI -uDsaKK1B-BZV4B9B qvDgYcYHKJJvB2BVVlBqBZXIJJLqBvBMMMLec osDibmBpBWWrBwBFFGJ orDodEGWZHFIJKIMNMKzB8BRP qvDgYLJehByBsBdiB 2rDgaehBaalBqBZX 2wCuXGfMCCRXFFVZFDQMCBKjBHCHZHHqBOCHuBoBKGZHHgBGBMWE mtCuSkBGIxBhBF krCyDkDWDQ9CPFD wsCsFQEBO1BoBlBHEReI umC6SlCNCJMCQvCLDEXoCO qqCmDUEX-CPD glCyiBBWsEKCV k6CwNOlCSEGGBOJBBKKCBOJBBGKCBGJBAIICAI ujD0YKCEPaGDQHBTyCZF 4gDmgBXLCNKCHFCPKEFHCNKCCFHBMPJBCHaG y0CmSFekCQHiB2BKInBRDCQPDIjB ktC-jB4CICJXNREAHPECJNBAMDHNB -5CoRGbnCPFc 43CuRiCOFY_BP 8pF-ZJamBUXoBMGFKaOGJMGYlB4BiBKRpCtBILMIOXJFKTPJf0B kvF4fWlBfTKNGHcQoB3BWMrBoCeKAIiBUJQJGVNDGfbPa 8zF8T4BoBQVbTiBvBmBaSX_BtBzBwCDD y5FmZ0B2BWFQPPTLIjBpB i1FicuBnB0B-BJIpBxBjBe q4F4c0BvBANhC9BhBmBQQONgBiBfe 45FufUTWWtBqBVT -gGqlBdbWVcaKLnBjBlByBkBiB sqFuUMNmBgBdmBRNUX 4qFoYMKexBacJOHBdoBfZ siGqZAOZAlCoBHPqCnB -5F8CSJHLQJMUgBTKQvBcFJRM mzFgagBqBqC5BFJPMJLnBWLN ikF8MINoC0CLK i_EykBgBJIYKBIepBM 6jFkjBHJNKLbmBJD8BPQKOYVG3CpBAlBWY8B 8jFygBQRJJUVHFGFfbRWXThBoBMKUXcWJM 62EsCOL-CyDNM s8E4IegBYTlBvBtBBBiB y5EgBNPgCxBMQ ivEsYYTnBxBXU 8vEwXURTXQNRXfmB s8E0CQN8BoCRM whFWTSAKEEOHLOEEUAJQGKcV k_E2JWcDIIDIKXULTFEDKSORQlBjCMJWaIPFF usE-DYCANOACdfTDIIC yjFuDYkBfkBVbWRJN 2rEkPMQPMIMqBEBOpBDAOfBAnB"
 };
+
+(function(M){const X={
+cols:{"Girton":"1jB_eHGJBrJ3G1HpG3GlGBF3D9CrClCsHlJlBdfNNVJZTLXlBO3CoG0EHUkL2IeYsBBCKJCQY6CVAmCMmBkBkCuE-FYuBMoBAgB","Homerton":"0gF64HnBSPOVkBBc1BDbJjC0JwDHyQzBmK1DtFjOVMHKHYJQVM7CcJK"},
+r1:"3a_WhDxB_BtB xjBzd6I0G 9jBjdpDxC 1pB9hBgBMsC6B n2BjsB-GgG0FmE 3a_WqF0E 1U1R4CoC tVrSYW nnB1flCzBHT pmB3f4CkC 5f_ZjEjD 5kCl5BqIsH _0CrnCyDgD 5kCl5BPDhErDvIrH 7xChkCpEvD jhCrqCwdvE hyClmClBWzZsI lsDz5C2FmEmPiK8CuBmCU jmDnhC0PxEsVxE p1BvrCzV4DjHyB hyClmC5R-E txCrkC2K-IgC-BBK nyCppCoEO6KvBiCA v8B5xBoG2F zuBvsC1GgB zKxJoDqC 3N_LkDuC 9RtPkBgB 5QtOuC-B rOvMUQ vG1GsBc rHnHcS 1D7E6BuB 7BtD2BsB jF5FuBe zjB7uCgsCrL qwBz6C7zCwM xjBjuChL0B 8uFymH-X49B kpFw3GoDoI ssF4_GwC6G ioF80GiB0C 4lFiwGqC6E ukFytGqBwC",
+r2:"9jBjdMP xjBzdS9B _iBxfIzB 3iBlhBYvD 5gBvpBBlBjB1C9EzGZ9BDnBWrJD_D ppBprCApCQ9C pnBxkCrB7DT7C _hB1kBmB5E 0yGmpHuEzS i3Gy2GkF1Y 0yGmpHnZrG wxH8wH7e1H s5F6iH7L_CjBB i_DwwGgQ1C",
+r3:"lK5lBnLuT vT1VqD8BeBiDvF 5V1lB_B4CxBkErCuE xnB7Z4BmB nkBnepDsE 5VhDtKuN 5VhDapBiD9C 9RpH5BwChC4B rYK0FsEOSMuB ngBsKQiB xmBnCnBnBAVwEhGpJxH ngBsKdMjFOhCSpCD_EQPiCKiG _iBSrF-G 7hB6I3BjBjBDzCpB _hBvF-GsF 7fnItFgH hbD5G-I _hBqBuDnE xlBvB5EmGpBU hesEvIzG 3jB5KuCpDrClCxDrCxCiD ruBvIJKAqGGI2G7B 3gB3J6BvCtCjC zc4FtBrB zoB1ULClCoC hnB1SXtBZR 3nB_NnEwFrCA 9S9cHF 5oBxwC_Db_CHNKHmBNOhDKRNIpCLPxDF h4BzzCZyCAkB 4BzzBgC4B6C0EEkBrI6GpDoG7G7D _Ehf5BiD rP9c9BjBzBkB rHnHyGzK0B5BQD kH5E6D1E sJtHealCyCfX 9S9cKG _RtiBSf 9BzIiD7D cxG3CkD yE9KNenDuD iH_NvCiD cxGER4CnDaR sDlQtCkDGSgDwC lRpI6ClE uHrZ-FhF 0N5YnC8B3CyBxCgDCasC8B sJlZgDxC iH_NmE5E2EpD 4L_amE8E gNhKdQ 3N_LtD2D 9RpHYf iR1G9EyFGW vN8JsIa xFhF3CsE 9R2GGqBkBmBsBU4BC rU_4B8DiD 9Ut5BwCnD 9Pv1BlC8C lTrzB6BqB tN14BYSeHqBgBBUbQZiB jMvyBjC0C 5nB_4BsFOoY4S 5gBvpBgGiBmCaqGuE lK5lB4B9CsMnN pSljBSM 3NvvBwBwB nO7vBjBZ tN14BvCmD tR38BgEkD tS18BgBB nO7vBQM rPh1BqEsD vQ91BkBc tNz5BGUFK pnBxkCuCT zZn8BzBgC nc1oBOvCnB9BPI hcl6BvD3C 9ev8B-BxC 5hB1-BfoB 9Ut5B_BwC _Wv2B2CqC jdrkC9B4C 5b_-BkC4B zaj5BsBkB pjB3kC6D4C vf_hCeY xenhC0BqB _ch_BOR 9c9_BkBe 1Zn9BQO lZ58BMI lZ58BNS 5Yx8BoD0C xV95BUQ 9Ut5BSO 7kBllCiBH 5jBtlCQW pc7kCZQ xf98B5CnC nbn6BJO xb55BPL xb55BeW 1Yr3B2Bc 9W92BBO ojF-oI4GZ 2kFilJ3BxbKR 4yF4wHxBaTwBLI3QyFlByBJuBOyBaS orFgoIO2D 6tFsrIvFe yqFioIsEVgL3E 2-E69HIa w_F8yIkW9D g5F0hIsZ5E 01G-uI5ExZ 67F-oIwEPuT3D y2Fs7HiGrC8J5B 2zFk0HiGpCsLhC i1Fy3HsHtCsJ1B y2Go0HQkB-CU u8F-gIRpDmER qgGuoIWkD 0wG4vIK0CJmBI8BrCU kvG01H2BH syG68HgUxD 4zG2kIgQ1CML 01G-uI6PzC4CG6CY 8wGu1IyBD klG4vHsBuH 6wGs1H4FjBgBZSlB4BnH -2G4zIX7E kpGivHKwBWD k1Gi0I2CL suG41IAW wmGm3HiGjB ysGi2HyCN m1Gm_GkDakCLsBToFtEyCY u_F0xG0X-E mjGolH-BwK 69Fg5GwGsB uwGk1G3B4I 0pG6zG1BuI o2Go6GoBLkEpD mpG8mH4BvH o-FgkHX8D 69F8oHlMgF w9F8nHyCR 69F8oHUCMOMmB kwFiqHgCXStBmBRsBA g1F4hHI9F o1F67G4DC s1F-0G5Ed1ECRKlBuCMeOG-BC o1F67GE7GmBnH klG4vH8HtBoEhBSZanD uhG-qGqClJ u7FqjH2E_UqBrD sxGitHiDa 2qGm_GSG ksEquGIuB gvEqoHrEU gtEyoHb3G msEmjH7BI sqE23Ge-FvBG sqE23GhBvGmDR 2sEyxG8Fb 60E4wGiBqH w2Eq8G6H7C q-Eu5GzB1K 2oF0sHnJoD 0oF2sHYqC ssF4_GzD-B kmFgiH7B8D 4oF2hHlBUtBJUnB -tE05GaoFdUBOoBsI ukFytGiBDawB 2nFs2G4CjFI3C 6lF-6G8BxE kgF2iHGjBfDZjDjB1C itEo0G-Fd suEu8GmFX -tE05G-Fb 0qE-oHxC7QwFb gzEqzGcmF mgFo5GcSMaEcRyB1F0C7BpE qmF-uGwCnB ipFquGNb 8zEw4GwBN s1Ei4GQA 8zEw4GAI ssE4vGyB8J 81Ei4GUoE w2Eq8GEc q-Eu5G8BF 4mFkgHAUgCe 2qFwuGFjB kwFiqHtHyC",
+r4:"2wF20GBK mwFk3GnFGAU -tFs7GkBAGU",
+green:"70BsVS_E5F1O9GvDpCoB2BuDQ-BL0HbiEOuC0GqDUN _hC-SNtCchEMzHP9B1BtDtE2CgC-O hKzH1BnBnBL5BMjBejDiENkCzBoCBYMY0CgCYEiBJsBlC6EjGUnB zmBvCbXBViFzG4BqBzF8G lZiIaUgBuByBNIsBMCUX3B_B-CxD7BxBLOJD 7tBjEGUuDboDjE3BrBrCkD9BCAuC xzBr7B_B8CwD4CgBG8CxDvBlBdmB t2B_4BdK_DiF5EnE0E3F p3B90B2CiCRWJoBWIIJwBkB5CWVD5CtCBN nzBzuBSTKBsCyBNSWSHKwBoBKLUQOPYSgD5DMILiCaILwBfMLoBGUkBFOegBaEaXKTajCzBPBbpBfINFD7BrBRZCXRIXJPTMfLFnBQpBFH 34BxiCITnGzE6ELmK1BawCkCTY4BUqD2DnBV0J_CiBEKrBC _tBhnCiB6D_F4BjB7D 3ExQ3BwD3GrD4BvD uH3oBuF8JrMoKxFrDyG1L 7PxO0H8FiBI4ErIRLEV7BnBRmB3BHrBpBCvB5ClC zLhFzDiFlDpC0DhF 9XqPkD2CmFjI9BnBRzBV6B vPyJiFnHxBlBPWXPlE0G nY_lCL-BeYqI7J5C7B5DgFzBuC nvBz7BTzBAtBOpBaZmDbkBEmBYQYEsCJ-BxCmBrCB vsBn2BZaKIjBsBAQ2DoDiBS8B_B ztBlxBhC2CuD0CiCxC u5EglIwDH4BibD6D3HXCvHa9J wuEg6HImD8ID1DoNzNxBiCvO 2tF83HBSyBgF4CbR_BRTTtCLF oqFowHc4BJCEKQFIPoBOONALeM4BXQICQsBdRzBLEJZrCYEiBvBQNnB otF6_HGYlBMNrBVIU-BSGgHrCBHkCVDLSFUKEHRJV_BODSEsB0DXGLd_IwDIaJEvDrBjBdKhBRdE_BJVZDPUX5BXJqCZJpBmBAEJoCXekBqBNyBwFTvBTIQuBLEKgB1BSGU 8rEkwHkBqG7DWhBpG 4vE84HvGOrBzIOLL5CiH3CMqEICKkCOSGiCeoCZEKmC g3Ek5HuBTwB5BOnBX9E4CAzCqI wlEssI0NmBeUlFySjMbgDtKMlFFhD m8E8gI-FVMwD9FY qrFs4IoBkDoFjCnBlD 6wFohJdtC5FmCjB7QsHxBV9CgHvDmFwN1BHJOlBJxBUIO7EwBD6BoC2F yiFkgImB8DpKgB0BnHgBGaTUAeYKaKBGTiDbQuC 8wFytIkGzCuDmJDUPDFOfFtCeEM1Ca wpFq4IsBD-FtCkB4CCZ0BPrCrIpIqB 8qFm4IY-BlBOaiCbQqBmDzBWR1I woHmpIkBrDxBLhTuDO4C-NtC -yFizHJEb2BHsBHGS4BwBPIYvBQMkBuCZKcPKeJ w8Gu3IL9C1HqBM-C 65G4mGlCyKvS_DiCvK 0kGyvGQnC6FoBRmC 6vG02Gb-BZkDA4BqBIc1CK1CBvB ipGg1GfqCTuDAqBmBGe7CKxCB1B 8tG4nGvFfV0DwFgB wwGyoG2CYjBsE3CV",
+water:"hpCzJtBVU8B h3BqStBhBKxBDfXxB1B3BbGHFU_BBNdlBeLQXRzBQ3BRBPazB-EQ0BD4BYgBR0BBmBmByBqBgBmCgBOA 3lCpGXVLxDElBSrBMI 3xBYNSHqBQQgBZEjBHP _yBn3BPHLXERQFJRQXEWiBsBDQ jazjCUCMQAQVOPHHV q9Ew6HBMRENFBXgBE",
+bld:"vTjfSCDQeCHSfLHkBGEDIJHBQGAJgBQEFUnBRCPWECFHBERHBERICKrBIC xT5aAUWECHMCDSQEERHBItBeKENXCKnBiBOIRfAERRADWHBDSFBDYHBBsBFH 3WzRWKzBqCVRclBMB 5csLKjBVLxBEDYGAAY zfiGcjBkBebkB 7d8B6BnCWQ5BoC 3nBsHYNaKOWHaRGLTZH plB4IabMBGsBNgBVANL jjB0IeIiBaAMxBEZLAT 1erCcW3BoCbV znB0EQM9C4DPNJXuBT nrB2GLdyBVkBtBSOzBkC ruB9BArBgElBkBgB tuB7H2CBgBYLO9BCAuCnBGBF jrBzIqC_CyD4CZiB1ChC1BmCNJGJ 7tBjEGUuDboDjE3BrBrCkD9BCAuC zpBjFsChDgBYrCiD z8BpiCuBNHfvBO xiC_vB0BmBPUzBlB zhClxByBmBZkBzBjB xrCh6BmBiBLOZVLOcWLOZVNSWUPUlBhB pyC75BRRsC3CSQ 3uC7-BQOvB2BfbkBnBQO ptC97BrBlBehBsBmB 5qCz6BiBcRU1CnCWZ0BsB _sCr6BDDbgBXToBtB2BuBpByBZV 7uC36BPUTPSTLJgBjBgBc nzBrwBnBjBKLqBiBIJQSUKHKkC2BJO 7zBlzBHFcpBcY9BmCTR n1B50BKIHKmBYEKJMlErDKJcWIJmBeNEWS _5B3yBHJmB1BKKgBlBMI_BuCHFOMHK nzB10BEEWbhDrCHKQOHBGGHIMKKNmBeJOMIKNQO 1ExUHORJNMRPBEHDCFHFGLLHanBhBVIPNHINiCuBjB0BoBYc5B2BgBPYjBT vPuKODSMnBuBQMReJXLOTL rI5EaQtBiCVR nBsBoBoBUZJJEDfb 8LzSoCpBoBkCVOd1BzBc uF7WmBe7BsCQOPUbVTadVjBsBXRmBxBIGoBzBWS sLxayB6BPOjBpBPOLP K0KCbjBbTYXBBa 9CkKCR9CJBS -L_kB4BVSqB5BY huBxwB3BmCLJSVJHORKIwB9BMK jrBlvBvC_BKLmBgBKLSQHMWSGHOMFGQKJO 1pBpuBtCqDHELJ-C5DOK luBvrBJOvBnBKNgBaSZSOHWFD 7wBtzBOJwBiBVarBjB xuBjzBHSzBlBGPLJKLgBaCQQE tlB7mCBHeAGkBTGBHPGCGbCDNFCBXcJEK pjB_pCjBKPxBmBFCoBKD lmBjoCbKBJHCHvBcJ 5a5-BLJAROPYAKMBSPQ 9X_hCfmB0CkC8BoBWjB9BtBFIHFIJJJ 1Yl_BbcYYMGKJKKHKIMwBoBQLOPvBzB rjB5hCeWoB5BdT pgBzjCUXXPSXMDDHSZWQQVTVrBZPWUOvBiCfXPSAK pjB_pCAcKBGSJCCIbKP1B owFkxHMIPmBGGTMnCWjBRJNKNSMcnBSGyBVKB wiFswHDNoCXmC2GrCcnCnG swF22HJhBRGKgBTGJffIGUNETjCSFKgB8BRHdSDKkBSFEUPGKICQ qtF-1HMkBFQZIRFJPIFFR ygFo8HIWVEBLRETzBGBBToBHEUZIImB opFg3HHdmBHKaWFJdUFQ4BpCSFV 4vFg-HDN2CZT5BODDNGBEOQFS8BiBJKOAShBKLUBJRGBFzCaDLJEBH -wFy2HaoCRGZpC qsF6hIRBT9BWHS2B0DnBIY 8kF-5HxBQHVNGHbgCV gvFw9HWsCTGHXjCWFTiCVZtCUH 6wFukIGc6BTLb ohF-wHKaOFQmCSFd3C qgFowHIeTETuCSGuBRKcpCaxBTOvBOEEPJBalCOE k-Ek3HaIgBJMkBdK3BLJcXHkB1DoBQ qgFi3HMgBsCXLhB u_Eq-H2CVIgBJECMQDGW5BOFVMDDLtBM kpF02HKcLInBMFVTGFPUHBFcJIYGBBH wkF-3HKaSFOsBuBNVlC 0oF8wHiBLYoCLECGVI u8FgmIIgBQDEOaHDNIBHf q1F8zHkBkDiBLDJNEBDMDFPLEKHFRNGDFOFDLNEDHQFFN sgGk5HEQKBCKQDBJGAEMMBBLGACIOBBb 23FmzHKcKDDLIIMDDLIBEKMDDLGBEKMDFb qgGk0HBZMCCGOHCGIAENKKBLKBAKCJMBGKCQ q8Fw4HDROEDPMBEOCJUGBNOBGMDNQBCMQHEEBNOBEOOJCKSJCGGABJSGBNKBCOIBBNOBEOCO 87Fk6HEOIBGSMBBTGUODDRGOODCPGSMDFjB k7F6wH6BHDfXCAQBLTCBJHC o9Fw1HEaGBAJWDCMGAANCKMABLIGMBBHGACIMDEFCQKBERGACMKFBJGACKODBHGIMDBHWCDT ukGmwHbGCKMBLGEQMBJICQOBAINECMQGPCEOQCQD quGoyHK2BGGSHEWwBHCKwCNHzBHCDVIADPxBIGgB_BMHvBVEEQ i5Fy7HkBNFLUFSiBjBUEKUFGQnBQ 49F0pIES4BJHGEWUDJXSDDT yqGkzIMDBJgBFK0BLCEMTGGadEDZQB -tGwvHDRiCNCQJCEQvBHEWHC g9F-9HAJTEEgBUDCIsCBkBJDdjBK 0yFu4IU2BYJBXcLJdjBWBH m2F06IGOWFGSeLEJDFNGBFQFHV g4Fq4IFPeLPtBUJW2BGBIUHCkB0CvBUFNBINGXxBSF i1F84I4ChBGQ3CkB i0G8gHHgBRDCJ3BJEV owF88GGnHiCBgCGAiBGAJ6CpBBBqBKAAWJAAa9BAAITA mzF8_GfECFdBAFbACX2CM y1Fq5GBkB2DCAhB 4wF4vG6BYdmC5BZ -4FqzGBGdFBGdFBGfFM_B8DYHuB 61F6zGuDCAsBtDB 21Fk4GyDCBkBxDD o3F6sG8DaJyB7DZ kiGmiGrBuFlBJsBtF k2Fo8GkBCAaJMKYAOJACmBcEAMMEmBCAazBIFJRAAJfBAXJAK7BFADNCZKA 0zFowGKCKtBeGNmCpBH 81F4sGPoCdHEXICKtB kzFwyGItBkBIR-CxBJKvB 6xFgnHIUIBBFaFBDMFCGSFDFYBFLGBDH 03F6rHQaQFDJGBEKMFDJIBEIKDDJKDEMOFCLEMOFDLGBEMOFDLGBEMMFDLIBEKODDLGBEMOFDLGDGOMFANFP 84FqqHNjBQFISEXIBISGBFLOFEMGBFNOFGQAPMDGOIDDLWJIKGQ 8iG-mHhBKESQBAINCCOQBAKPCESQBJICIcF gmG6mHDiBaCIGBKSECJWKUDCX 6jGmmHEoBIRQEDMSEAIMCKjB 8yGiqHLuBOCIdASQCEPGCDOQEELAMQECJCKICGZ 0tG-gHTBJwBoBIMxB qvG0_GFe-BMGX ktG8iHNgCcGO_B 6tGinHW_DICCJUEIjBQEBMWEDQSEJwBRDDOXFR0C 0iGwjHHiBuCUCbNDBIHAChBJDHiBAPFBERJDHkBHBER 49FsjHmCUIdPGEHPDBKBLNBHICJRD isG2mHvCRERWBCICJKCCMEPQEEIGTOC gmGqkHFasDaEdLBHKGTRDDUAVHBJUHBENLDDQHBEP u8FokHhBJJoBWGFcME mzF8_GI5CkBAEoBFAD-BVEHBAN qtF8gHKL4EiBHmBnCNTUiB6CfM 6xF4jH6BOHiB5BL 4-FwuGnBJCJTDBKzBLFawDY 89FuyGnBHCFnCJFawDY -9FmxGnDVEXoCKAGgBG 0sFwyGSKDWOCMLSKiC7D7Bd kvEwgHiBsHiBDHvBmCFAF6BHGwBgBFPjDdGCY3BGBLXECMtBIFfOBDZNCH5BSBCMcDBNOBFb5BIBL 2tFs4GDgEfAEhE 0vFw_GCjDSAAQGCBuC gwF82G5CALKhCFAdaCAd2BAByBWAC9BiCC 4nFgxGwBXSoBtBa k-Eu0GuCLEapBGKgCbEH9BJC 4lFiyGCMIBGmBIAGiBTCI0BhBET7DOBBJ 0_EwiHrDRTzBLGFP4CfiBwCTDRrBtBSMcqDQ -8E-7GPGMcjBOLbPIQqBJEGQwCf u5E87GwB6DTIxB5D q3Ek9GK2BYBCQPCMkBkBDERHJOFJdLCHvB 8rE-sHsBLO6BpBM skFgmHWtBMGObLDStBoBKkBHgB2CXKZ_BpBBJYMELcNFTwB 2qF-iHvBSPpBwBR 6tEyxGsDPCQpDQ iuEszGEQqDPBP qwEo8GCYkDNDX mwEs9G2CNEU1CQ ypEi_GDf-BHEgB osE44GS0DVCPxD 4uEm0G6CNES7CO 0pEoiHgCHGe_BK suEwnHZETtEaD 0qEyqHwDtBGUtDsB qvEq7GEQsDPDP 4rE02GTEZlFUD qyEm5GpDQCOqDP -mFmpHOFIa1BapBvDiDhBOmB5BWBIMc qjF6qHkCZOoBhCa 48EotG0CLES1CO woE6vGuDPEgBrDQ 85E87GIS6ChBCHFL 8gFyrHqBvDgBIpB0D 6rFwhHKAU6BhBMLhBWH 6rFwhHGcpBSPpBuBR ynEwpHmBNQqBaJc2BzCiBV1BOF uiFy9GaMHSGCFQFBPiBICdyBIEHQFBHQbL q-E83GQiBmCdKacLRpBtCgBFR 8hF82GCtCSDBNfED6C mjF0zGM0CWDLzC qkF-2GqCJMOdiCvBG 2lFitGWLMakBRKU5Bc 4tFgiHcDUiBUThBVGZrBJJM qsF6pHhBMMgBuDjBLZNGAIfGFK m_EmkHCLqBKnBkD3CMKgCwBHpCgGLOdERTXlFiCHH_BhCKFxBOBPzDkBFCM8BKEJqBIDM 8hF-rHhB-CrBKuBzD otFwoHIUKEBOVQZJCTIDBH ooF8qHwBTHZKHBNTIDJJEGMhBMAQ w9E0wGMyCmDNRzC s_E8sGWDK4CRE"
+};
+for(const k of ["r1","r2","r3","r4","green","water","bld"]) M[k]=(M[k]?M[k]+" ":"")+X[k];
+Object.assign(M.cols,X.cols);
+})(window.MAPDATA);
 </script>
 <script>
 (function(){
 "use strict";
 /* ---------- basics ---------- */
 const GAME="2026-11-08";
-const CL={W:{name:"West",c:"--west",cols:"Selwyn · Robinson · Clare Hall · Newnham · Wolfson"},N:{name:"North-west",c:"--nw",cols:"Churchill · Fitz · Lucy Cav · Eddie's · Murray Edwards"},E:{name:"East",c:"--east",cols:"Hughes Hall · ARU"}};
+const CL={W:{name:"West",c:"--west",cols:"Selwyn · Robinson · Clare Hall · Newnham · Wolfson"},N:{name:"North-west",c:"--nw",cols:"Churchill · Fitz · Lucy Cav · Eddie's · Murray Edwards"},E:{name:"East",c:"--east",cols:"Hughes Hall · ARU"},F:{name:"Further out",c:"--far",cols:"Girton · Homerton"}};
 const pad=n=>String(n).padStart(2,"0");
 const fm=m=>{m=Math.round(m);return pad(Math.floor(m/60))+":"+pad(((m%60)+60)%60)};
 const tm=s=>{const[a,b]=s.split(":");return +a*60+ +b};
@@ -172,7 +224,7 @@ const HUBS=[["Emmanuel St",52.2047,0.1238,"emma"],["Pembroke St",52.2015,0.1183,
 
 /* d: [cluster, stop, colleges, +minutes]; back rows add ride (min to centre) and arr (arrival stop) */
 const GROUPS=[
- {id:"emma",name:"Emmanuel St / St Andrew's",note:"Emmanuel St (E1–E5), St Andrew's St (S1–S3) and Drummer St bus station are within a minute of each other. Nothing goes west from here: walk to Pembroke St (6 min).",rows:[
+ {id:"emma",name:"Emmanuel St",note:"All Emmanuel St, St Andrew's St and Drummer St bays are within a minute of each other. Nothing goes west from here: walk to Pembroke St (6 min).",rows:[
   {line:"PR1",stop:"St Andrew's St S1",atco:"0500CCITY492",t:every("09:58","17:00",12),d:[["N","opp Storey's Way","Churchill; Fitz, Lucy 5 min walk",6]]},
   {line:"4",stop:"Drummer St Bay 10",atco:"0500CCITY227",t:hourly(10,10),d:[["N","opp Castle St","Eddie's, Lucy",4],["N","opp Storey's Way","Churchill",5]]},
   {line:"5",stop:"Emmanuel St E4",atco:"0500CCITY490",t:hourly(50),d:[["N","opp Shire Hall","Eddie's, Lucy",7],["N","o/s Fitzwilliam Coll","Fitz, Murray Edwards",8]]},
@@ -181,11 +233,11 @@ const GROUPS=[
   {line:"X3",stop:"Drummer St Bay 3",atco:"0500CCITY119",t:L("10:10","10:40","11:00","11:40","12:00","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00"),d:[["N","opp Castle St","Eddie's, Lucy",6],["N","opp Storey's Way","Churchill",7]]},
   {line:"2",stop:"Emmanuel St E3",atco:"0500CCITY489",t:L(hourly(27,10),hourly(57,9)),d:[["E","opp Covent Garden","Hughes Hall",4],["E","opp Mortimer Rd","ARU",4]]}
  ]},
- {id:"pem",name:"Pembroke St / Queens'",note:"Only the Universal U1/U2 runs here on Sundays. Board at opp Pembroke St (Trumpington St, Corpus side); it reaches opp Queens' (Silver St) 3–6 min later. Offsets grow by 2–4 min around midday.",rows:[
+ {id:"pem",name:"Pembroke St",note:"Only the U1/U2 runs here on Sundays. Board opp Pembroke St (Corpus side). Allow 2–4 min extra around midday.",rows:[
   {line:"U2",stop:"opp Pembroke St",atco:"0500CCITY420",t:L("10:18","11:50","12:54","13:53","14:51","15:49","16:49"),d:[["W","opp Univ Library","Newnham, Selwyn",5],["W","opp West Rd","Clare Hall",6],["W","o/s Robinson","Robinson",7],["N","opp Storey's Way","Churchill; Lucy via Madingley Rd",8]]},
   {line:"U1",stop:"opp Pembroke St",atco:"0500CCITY420",t:L("11:17","12:18","13:20","14:19","15:18","16:17"),d:[["W","opp Grange Rd (Barton Rd)","Wolfson 5 min walk",7],["W","opp Selwyn","Selwyn, Newnham",8],["W","o/s Robinson","Robinson, Clare Hall",9],["N","opp Storey's Way","Churchill",11]]}
  ]},
- {id:"bridge",name:"Bridge St / Jesus Lane",note:"Bridge St stops are by the Round Church and outside St John's; Citi 5/6/8 also stop on Hobson St (opp Christ's) about 4 min earlier.",rows:[
+ {id:"bridge",name:"Bridge St",note:"Stops are by the Round Church and outside St John's. Citi 5/6/8 also stop on Hobson St about 4 min earlier.",rows:[
   {line:"PR1",stop:"Bridge St opp Round Church",atco:"0500CCITY122",t:every("10:01","17:01",12),d:[["N","opp Storey's Way","Churchill; Fitz, Lucy 5 min walk",3]]},
   {line:"X3",stop:"Bridge St o/s St John's",atco:"0500CCITY099",t:L("10:15","10:45","11:05","11:45","12:05","13:05","13:35","14:05","14:35","15:05","15:35","16:05","16:35"),d:[["N","opp Castle St","Eddie's, Lucy",1],["N","opp Storey's Way","Churchill",2]]},
   {line:"905",stop:"Bridge St opp Round Church",atco:"0500CCITY122",t:hourly(16,10),d:[["N","opp Castle St","Eddie's, Lucy",1]]},
@@ -195,7 +247,7 @@ const GROUPS=[
   {line:"8",stop:"Jesus College (Victoria Ave)",atco:"0500CCITY110",t:hourly(47,10),d:[["N","Histon Rd Corner","Murray Edwards",5]]},
   {line:"2",stop:"opp Jesus College",atco:"0500CCITY109",t:L(hourly(20,10),hourly(50,9)),d:[["E","opp Mortimer Rd","Hughes, ARU (slow loop)",11]]}
  ]},
- {id:"back",name:"Back to centre",note:"Departures from the outer stops back into town. Set your location above to see walking times and the fastest option. Hughes Hall and ARU: walk (10–12 min).",rows:[
+ {id:"back",name:"Back to centre",note:"From Hughes Hall or ARU, just walk (10–12 min).",rows:[
   {line:"PR1",stop:"Storey's Way (near), Madingley Rd",atco:"0500CCITY055",t:every("09:51","17:03",12),ride:5,arr:"Bridge St",d:[["N","Bridge St","",5],["N","St Andrew's St","",11]]},
   {line:"U1",stop:"Storey's Way (near), Madingley Rd",atco:"0500CCITY055",t:L("10:26","11:26","12:25","13:24","14:24","15:25","16:25"),ride:10,arr:"Queens' (Silver St)",d:[["N","Robinson","",3],["N","Queens'","",10]]},
   {line:"U2",stop:"Storey's Way (near), Madingley Rd",atco:"0500CCITY055",t:L("10:57","11:57","12:56","13:56","14:56","15:55","16:57"),ride:8,arr:"Queens' (Silver St)",d:[["N","Robinson","",3],["N","Queens'","",8]]},
@@ -214,7 +266,7 @@ const GROUPS=[
 ];
 
 /* porters' lodges (OpenStreetMap) */
-const COL=[["Christ's",52.20529,0.12195,"C"],["Churchill",52.21261,0.10377,"N"],["Clare",52.20508,0.11558,"C"],["Clare Hall",52.20395,0.10439,"W"],["Corpus",52.20293,0.11785,"C"],["Darwin",52.20078,0.11361,"C"],["Downing",52.20148,0.1252,"C"],["Emma",52.2036,0.1237,"C"],["Fitz",52.21431,0.10479,"N"],["Caius",52.20591,0.11795,"C"],["Hughes",52.20103,0.13167,"E"],["Jesus",52.20911,0.1234,"C"],["King's",52.20433,0.11728,"C"],["Lucy Cav",52.21106,0.11061,"N"],["Magdalene",52.21019,0.11608,"C"],["Murray Edwards",52.21421,0.10915,"N"],["Newnham",52.20033,0.10879,"W"],["Pembroke",52.20184,0.11836,"C"],["Peterhouse",52.20096,0.11897,"C"],["Queens'",52.20184,0.11494,"C"],["Robinson",52.20458,0.1054,"W"],["Catz",52.2029,0.11738,"C"],["Eddie's",52.21281,0.10963,"N"],["John's",52.20765,0.11826,"C"],["Selwyn",52.20103,0.10565,"W"],["Sidney",52.20717,0.12005,"C"],["Trinity",52.20716,0.11751,"C"],["Tit Hall",52.20575,0.11618,"C"],["Wolfson",52.19852,0.10098,"W"],["ARU",52.20335,0.13405,"E"]];
+const COL=[["Christ's",52.20529,0.12195,"C"],["Churchill",52.21261,0.10377,"N"],["Clare",52.20508,0.11558,"C"],["Clare Hall",52.20395,0.10439,"W"],["Corpus",52.20293,0.11785,"C"],["Darwin",52.20078,0.11361,"C"],["Downing",52.20148,0.1252,"C"],["Emma",52.2036,0.1237,"C"],["Fitz",52.21431,0.10479,"N"],["Caius",52.20591,0.11795,"C"],["Hughes",52.20103,0.13167,"E"],["Jesus",52.20911,0.1234,"C"],["King's",52.20433,0.11728,"C"],["Lucy Cav",52.21106,0.11061,"N"],["Magdalene",52.21019,0.11608,"C"],["Murray Edwards",52.21421,0.10915,"N"],["Newnham",52.20033,0.10879,"W"],["Pembroke",52.20184,0.11836,"C"],["Peterhouse",52.20096,0.11897,"C"],["Queens'",52.20184,0.11494,"C"],["Robinson",52.20458,0.1054,"W"],["Catz",52.2029,0.11738,"C"],["Eddie's",52.21281,0.10963,"N"],["John's",52.20765,0.11826,"C"],["Selwyn",52.20103,0.10565,"W"],["Sidney",52.20717,0.12005,"C"],["Trinity",52.20716,0.11751,"C"],["Tit Hall",52.20575,0.11618,"C"],["Wolfson",52.19852,0.10098,"W"],["ARU",52.20335,0.13405,"E"],["Girton",52.22848,0.08364,"F"],["Homerton",52.18517,0.13743,"F"]];
 const CLUSTER=Object.fromEntries(COL.map(c=>[c[0],c[3]]));
 
 /* bus routes, snapped to OpenStreetMap roads (metres, encoded) */
@@ -222,281 +274,253 @@ const ROUTES={W:["miD2rE_BtDbpCFfxH4BnBMzCkCdmBjB-BJKnC6BlE4CvC9I7BzHpCS1BG_XiC2
  N:["qyDuzDtCjDLpFtBvHGHiBPmCNoEG4BDmBtGzCbjFnBlCHxBExBanBelE-DTI7ChERP5C_DnBvB1D7D_B5B_EhFVOvBS9DOVInBetBW3DqBVClD9B1CpBnCXlKpCzGhCvCNlCFxIBtCHzEjBvGlCtCL","g6Du0D9BwCzCyCjDhGtCjDLpFtBvHGHiBPmCNoEG4BDmBtGzCbjFnBlCHxBExBanBelE-DTI7ChERP5C_DnBvB5D_D_E3EjG5G7C5DlC_EhCxCrDzD3DzCtBnBLBpMtK5KtJzPvM","g6Du0DkBzBQHsEyBUVqBpCsE9IcpCIlBDlCHpBAZKfOPERJVZNkBtQFnBR7BjGlNH_IRfbFXEzHoDhHgC9DyB1D-B9I8FtCW3C4BvC6BZY1CgEhBgB","-8DizB3EgClBDXVrBzCJdLPhdrHnDN9EKhCSrCiBnCsBpC8BjBgBjC6ChBZBPIhCe_VqBrH"],
  E:["64Dg2DXezCyC-FuKiByBOgB2FtEkFlJgD2B-BqBsLmI2IiGwDqCqD-B2F6D"]};
 
+
 /* ---------- state ---------- */
-let boardHidden=false, tab="emma", show={W:true,N:true,E:true}, live=null, me=null, focusStop=null, setting=false;
 const $=id=>document.getElementById(id);
-try{const s=localStorage.getItem("cdb-tab"); if(s && GROUPS.some(g=>g.id===s)) tab=s; boardHidden=!!localStorage.getItem("cdb-hide"); if(localStorage.getItem("cdb-dark")) document.body.classList.add("dark");}catch(e){}
-$("theme").textContent=document.body.classList.contains("dark")?"Light":"Dark";
-$("theme").onclick=()=>{const d=document.body.classList.toggle("dark");$("theme").textContent=d?"Light":"Dark";try{localStorage.setItem("cdb-dark",d?"1":"")}catch(e){}};
+const desktop=()=>window.matchMedia("(min-width:900px)").matches;
+let tab="emma", show={W:true,N:true,E:true,F:true}, live=null, me=null, focusStop=null, setting=false;
+try{const s=localStorage.getItem("cc-tab"); if(s && GROUPS.some(g=>g.id===s)) tab=s; if(localStorage.getItem("cc-dark")) document.body.classList.add("dark");}catch(e){}
+const setTheme=()=>{ const d=document.body.classList.contains("dark"); $("theme").textContent=d?"Light mode":"Dark mode"; document.querySelector('meta[name=theme-color]').content=d?"#121614":"#f4f5f2"; };
+$("theme").onclick=()=>{ const d=document.body.classList.toggle("dark"); try{localStorage.setItem("cc-dark",d?"1":"")}catch(e){} setTheme(); };
+setTheme();
 
 function phase(m){
-  if(m<600) return "Game starts 10:00";
-  if(m<780) return "Playing · break at 13:00";
-  if(m<840) return "Lunch break · restart 14:00";
+  if(m<600) return "Starts 10:00";
+  if(m<780) return "Playing · break 13:00";
+  if(m<840) return "Lunch · back 14:00";
   if(m<1020) return "Playing · ends 17:00";
   return "Game over";
 }
-
-/* live delay (seconds) for a scheduled departure, or null */
-function liveFor(row,t){
-  if(!live||!isGameDay()) return null;
-  const k=row.line+"|"+row.atco+"|"+t; return live.delay.has(k)?live.delay.get(k):null;
-}
-function upcoming(row,from){
-  const out=[];
-  for(const t of row.t){ const lv=liveFor(row,t); const eff=tm(t)+(lv?lv/60:0); if(eff>=from) out.push({t,lv,eff}); }
-  return out;
-}
-function delayChip(lv){
-  if(lv===null) return null;
-  const m=Math.round(lv/60); const s=document.createElement("span");
-  s.className="d "+(m>=2?"late":m<=-1?"early":"ok");
-  s.textContent=m>=1?`+${m}`:m<=-1?`${m}`:"on time";
-  s.title=m>=1?`${m} min late (live)`:m<=-1?`${-m} min early (live)`:"on time (live)";
-  return s;
-}
+function liveFor(row,t){ if(!live||!isGameDay()) return null; const k=row.line+"|"+row.atco+"|"+t; return live.delay.has(k)?live.delay.get(k):null; }
+function upcoming(row,from){ const out=[]; for(const t of row.t){ const lv=liveFor(row,t); const eff=tm(t)+(lv?lv/60:0); if(eff>=from) out.push({t,lv,eff}); } return out; }
+function delayChip(lv){ if(lv===null) return null; const m=Math.round(lv/60); const s=document.createElement("span"); s.className="d "+(m>=2?"late":m<=-1?"early":"ok"); s.textContent=m>=1?` +${m}`:m<=-1?` ${m}`:" ✓"; s.title=m>=1?`${m} min late (live)`:m<=-1?`${-m} min early (live)`:"on time (live)"; return s; }
 const distM=(a,b)=>{const p=PX(a[0],a[1]),q=PX(b[0],b[1]);return Math.hypot(p[0]-q[0],p[1]-q[1])};
 const walkMin=(a,b)=>distM(a,b)*1.25/80;
+const lineColor=r=>{ const c=r.d[r.d.length-1][0]; return `var(${CL[c].c})`; };
+const fmtIn=mins=>mins<=0?"due":mins<60?`in ${mins} min`:`in ${Math.floor(mins/60)}h ${mins%60}m`;
+
+/* ---------- sheet ---------- */
+function setOpen(o){ $("sheet").dataset.open=o?"1":"0"; $("grab").setAttribute("aria-expanded",String(o)); $("grablbl").textContent=desktop()?(o?"Hide panel":"Departures"):(o?"Show map":"Departures"); $("openpanel").hidden=!(desktop()&&!o); document.body.classList.toggle("panel-closed",desktop()&&!o); }
+$("grab").onclick=()=>{ if(dragMoved) return; setOpen($("sheet").dataset.open!=="1"); if(desktop()) setTimeout(()=>drawDynamic(),300); };
+$("openpanel").onclick=()=>{ setOpen(true); setTimeout(()=>{drawDynamic();},300); };
+let dragMoved=false;
+(function(){ const g=$("grab"); let y0=null;
+  g.addEventListener("pointerdown",e=>{ if(desktop()) return; y0=e.clientY; dragMoved=false; });
+  g.addEventListener("pointermove",e=>{ if(y0===null) return; if(Math.abs(e.clientY-y0)>12) dragMoved=true; });
+  g.addEventListener("pointerup",e=>{ if(y0===null) return; const dy=e.clientY-y0; y0=null; if(dragMoved){ setOpen(dy<0); setTimeout(()=>dragMoved=false,0);} });
+})();
 
 /* ---------- tabs & board ---------- */
 function renderTabs(){
   const el=$("tabs"); el.innerHTML="";
-  for(const g of GROUPS){const b=document.createElement("button");b.type="button";b.setAttribute("role","tab");b.id="tab-"+g.id;b.textContent=g.name;b.setAttribute("aria-selected",g.id===tab);b.onclick=()=>{tab=g.id;try{localStorage.setItem("cdb-tab",tab)}catch(e){}renderTabs();render();drawDynamic()};el.appendChild(b)}
+  for(const g of GROUPS){const b=document.createElement("button");b.type="button";b.setAttribute("role","tab");b.id="tab-"+g.id;b.textContent=g.name;b.setAttribute("aria-selected",g.id===tab);b.onclick=()=>{tab=g.id;try{localStorage.setItem("cc-tab",tab)}catch(e){}renderTabs();render();drawDynamic()};el.appendChild(b)}
   const f=$("filters"); f.innerHTML="";
   for(const k of ["W","N","E"]){const b=document.createElement("button");b.type="button";b.id="f-"+k;b.setAttribute("aria-pressed",show[k]);b.innerHTML=`<span class="sw" style="background:var(${CL[k].c})"></span>`;b.append(CL[k].name);b.title=CL[k].cols;b.onclick=()=>{show[k]=!show[k];renderTabs();render();drawStatic();drawDynamic()};f.appendChild(b)}
-  const hb=document.createElement("button");hb.type="button";hb.id="hideboard";hb.className="hidebtn";hb.textContent=boardHidden?"Show board":"Hide board";hb.setAttribute("aria-pressed",String(!boardHidden));hb.onclick=()=>{boardHidden=!boardHidden;try{localStorage.setItem("cdb-hide",boardHidden?"1":"")}catch(e){}renderTabs()};f.appendChild(hb);
-  $("planner").hidden=tab!=="back"; $("board").hidden=boardHidden; $("tabnote").hidden=boardHidden;
+  $("planner").hidden=tab!=="back";
 }
+function focusOn(atco){ focusStop=atco; drawDynamic(); if(!desktop()) setOpen(false); setTimeout(()=>centerOn(STOP[atco],3),desktop()?0:300); }
 
 function render(){
   const g=GROUPS.find(x=>x.id===tab); const m=nowMin(); const start=m-0.5;
   $("tabnote").textContent=g.note;
   const items=[];
-  for(const r of g.rows){
-    if(!r.d.some(d=>show[d[0]])) continue;
-    const up=upcoming(r,start);
-    items.push({r,up,first:up.length?up[0].eff:99999});
-  }
+  for(const r of g.rows){ if(!r.d.some(d=>show[d[0]])) continue; const up=upcoming(r,start); items.push({r,up,first:up.length?up[0].eff:99999}); }
   items.sort((a,b)=>a.first-b.first);
   const board=$("board"); board.innerHTML="";
-  if(!items.length){board.innerHTML='<div class="empty">No routes match the cluster filters.</div>';}
+  if(!items.length) board.innerHTML='<div class="empty">No routes match the cluster filters.</div>';
   for(const it of items){
-    const r=it.r, row=document.createElement("div"); row.className="row";
-    const line=document.createElement("div"); line.className="line"; line.textContent=r.line;
+    const r=it.r, row=document.createElement("div"); row.className="row"; row.tabIndex=0; row.setAttribute("role","button");
+    row.onclick=e=>{ if(e.target.closest("a")) return; focusOn(r.atco); };
+    row.onkeydown=e=>{ if(e.key==="Enter") focusOn(r.atco); };
+    const line=document.createElement("div"); line.className="line"; line.style.background=lineColor(r); line.textContent=r.line;
     const mid=document.createElement("div"); mid.className="mid";
-    const from=document.createElement("div"); from.className="from";
-    const nm=document.createElement("span"); nm.textContent=r.stop; from.appendChild(nm);
-    if(me&&STOP[r.atco]){const w=document.createElement("span");w.className="walkm";w.textContent=`${Math.max(1,Math.round(walkMin(me,STOP[r.atco])))} min walk`;from.appendChild(w)}
-    const mb=document.createElement("button"); mb.type="button"; mb.textContent="map"; mb.onclick=()=>{focusStop=r.atco; drawDynamic(); centerOn(STOP[r.atco],2.4); $("mapcard").scrollIntoView({behavior:"smooth",block:"start"})}; from.appendChild(mb);
-    const a=document.createElement("a"); a.href="https://bustimes.org/stops/"+r.atco; a.target="_blank"; a.rel="noopener"; a.textContent="live ↗"; from.appendChild(a);
+    const st=document.createElement("div"); st.className="stop"; st.textContent=r.stop;
+    if(me&&STOP[r.atco]){const w=document.createElement("span");w.className="walkm";w.textContent=`${Math.max(1,Math.round(walkMin(me,STOP[r.atco])))} min walk`;st.appendChild(w)}
+    const a=document.createElement("a"); a.className="live"; a.href="https://bustimes.org/stops/"+r.atco; a.target="_blank"; a.rel="noopener"; a.textContent="live ↗"; st.appendChild(a);
     const ds=document.createElement("div"); ds.className="dests";
-    for(const d of r.d){ if(!show[d[0]]) continue; const s=document.createElement("span");
-      s.innerHTML=`<span class="tag" style="background:var(${CL[d[0]].c})"></span>`;
-      const b=document.createElement("b"); b.textContent=(d[3]?"+"+d[3]+" ":"")+d[1]; s.appendChild(b);
-      if(d[2]) s.append(" · "+d[2]); ds.appendChild(s); }
-    mid.append(from,ds);
-    if(it.up.length>1){ const dp=document.createElement("div"); dp.className="deps";
-      for(const u of it.up.slice(1,5)){ const c=document.createElement("span"); c.className="dep"; c.append(u.t); const ch=delayChip(u.lv); if(ch) c.appendChild(ch); dp.appendChild(c); }
-      mid.appendChild(dp); }
+    const parts=r.d.filter(d=>show[d[0]]).map(d=>{const s=document.createElement("span");const b=document.createElement("b");b.textContent=(d[3]?"+"+d[3]+" ":"")+d[1];s.appendChild(b);if(d[2])s.append(" ("+d[2]+")");return s});
+    parts.forEach((p,i)=>{ if(i) ds.append(" · "); ds.appendChild(p); });
+    mid.append(st,ds);
+    if(it.up.length>1){ const th=document.createElement("div"); th.className="then"; th.append("then ");
+      it.up.slice(1,4).forEach((u,i)=>{ if(i) th.append(" · "); th.append(u.t); const c=delayChip(u.lv); if(c) th.appendChild(c); }); mid.appendChild(th); }
     const w=document.createElement("div"); w.className="when";
-    if(it.up.length){
-      const u=it.up[0], mins=Math.round(u.eff-m);
-      const nx=document.createElement("div"); nx.className="next"; nx.textContent=u.t; w.appendChild(nx);
-      const ch=delayChip(u.lv); if(ch){const z=document.createElement("div");z.appendChild(ch);w.appendChild(z)}
-      const inn=document.createElement("div"); inn.className="in"; inn.textContent=mins<=0?"due":mins<60?`in ${mins} min`:`in ${Math.floor(mins/60)}h ${mins%60}m`; if(mins<=10) inn.classList.add("soon"); w.appendChild(inn);
-    } else { w.innerHTML='<div class="in">none left</div>'; }
+    if(it.up.length){ const u=it.up[0], mins=Math.round(u.eff-m);
+      const nx=document.createElement("div"); nx.className="next"; nx.textContent=u.t; const c=delayChip(u.lv); if(c){c.style.fontSize="14px";nx.appendChild(c)} w.appendChild(nx);
+      const inn=document.createElement("div"); inn.className="in"+(mins<=10?" soon":""); inn.textContent=fmtIn(mins); w.appendChild(inn);
+    } else w.innerHTML='<div class="in">none left</div>';
     row.append(line,mid,w); board.appendChild(row);
   }
+  // peek summary
+  const pk=$("peeknext"); pk.innerHTML="";
+  if(items.length&&items[0].up.length){ const u=items[0].up[0], r=items[0].r; const b=document.createElement("b"); b.textContent=`${r.line} ${u.t}`; pk.append("Next: "); pk.appendChild(b); pk.append(` from ${r.stop} · ${fmtIn(Math.round(u.eff-m))}`); }
+  else pk.textContent="No more departures today";
   if(tab==="back") plan();
 }
 
 /* ---------- planner ---------- */
 function plan(){
-  const box=$("opts"); box.innerHTML="";
-  if(!me){ return; }
+  const box=$("opts"); box.innerHTML=""; if(!me) return;
   const m=nowMin(); const g=GROUPS.find(x=>x.id==="back"); const opts=[];
   let best=null; for(const h of HUBS){const w=walkMin(me,[h[1],h[2]]); if(!best||w<best.w) best={h,w};}
   for(const r of g.rows){ const sp=STOP[r.atco]; if(!sp) continue; const w=walkMin(me,sp); if(w>=best.w*0.7) continue;
-    const up=upcoming(r,m+w); if(!up.length) continue; const u=up[0];
-    opts.push({kind:"bus",r,w,u,arrive:u.eff+r.ride,leave:u.eff-w}); }
-  opts.push({kind:"walk",w:best.w,hub:best.h[0],arrive:m+best.w,leave:m});
+    const up=upcoming(r,m+w); if(!up.length) continue; const u=up[0]; opts.push({kind:"bus",r,w,u,arrive:u.eff+r.ride,leave:u.eff-w}); }
+  opts.push({kind:"walk",w:best.w,hub:best.h[0],arrive:m+best.w});
   opts.sort((a,b)=>a.arrive-b.arrive);
-  const seen=new Set(); const top=[];
-  for(const o of opts){ const k=o.kind==="walk"?"walk":o.r.line+o.r.atco; if(seen.has(k)) continue; seen.add(k); top.push(o); if(top.length>=3) break; }
+  const seen=new Set(), top=[]; for(const o of opts){ const k=o.kind==="walk"?"walk":o.r.line+o.r.atco; if(seen.has(k)) continue; seen.add(k); top.push(o); if(top.length>=3) break; }
   top.forEach((o,i)=>{
     const d=document.createElement("div"); d.className="opt"+(i===0?" best":"");
-    const l=document.createElement("div"); l.className="line"+(o.kind==="walk"?" walk":""); l.textContent=o.kind==="walk"?"Walk":o.r.line;
+    const l=document.createElement("div"); l.className="line"+(o.kind==="walk"?" walk":""); if(o.kind!=="walk") l.style.background=lineColor(o.r); l.textContent=o.kind==="walk"?"Walk":o.r.line;
     const how=document.createElement("div"); how.className="how";
-    if(o.kind==="walk"){ how.innerHTML=`<div></div><div class="sub"></div>`; how.children[0].textContent=`Walk to ${o.hub}`; how.children[1].textContent=`${Math.round(o.w)} min`; }
-    else{
-      const t1=document.createElement("div"); t1.textContent=`${Math.max(1,Math.round(o.w))} min walk to ${o.r.stop}`;
-      const t2=document.createElement("div"); t2.className="sub";
-      const lm=Math.round(o.leave-m); t2.textContent=`Bus ${o.u.t}`+(o.u.lv!==null?"":"")+` → ${o.r.arr} · leave ${lm<=0?"now":"in "+lm+" min"}`;
-      const ch=delayChip(o.u.lv); if(ch){t2.append(" ");t2.appendChild(ch)}
-      const mb=document.createElement("button"); mb.type="button"; mb.className="btn"; mb.style.marginTop="4px"; mb.textContent="Show stop"; mb.onclick=()=>{focusStop=o.r.atco;drawDynamic();centerOn(STOP[o.r.atco],2.4);$("mapcard").scrollIntoView({behavior:"smooth",block:"start"})};
-      how.append(t1,t2,mb);
-    }
+    if(o.kind==="walk"){ how.textContent=`Walk to ${o.hub}`; const s=document.createElement("div"); s.className="sub"; s.textContent=`${Math.round(o.w)} min`; how.appendChild(s); }
+    else{ how.textContent=`${Math.max(1,Math.round(o.w))} min walk to ${o.r.stop}`; const s=document.createElement("div"); s.className="sub"; const lm=Math.round(o.leave-m);
+      s.textContent=`Bus ${o.u.t} to ${o.r.arr} · leave ${lm<=0?"now":"in "+lm+" min"}`; const c=delayChip(o.u.lv); if(c) s.appendChild(c); how.appendChild(s); d.onclick=()=>focusOn(o.r.atco); }
     const ar=document.createElement("div"); ar.className="arr"; ar.textContent=fm(o.arrive); const sm=document.createElement("small"); sm.textContent=i===0?"fastest":"arrive"; ar.appendChild(sm);
     d.append(l,how,ar); box.appendChild(d);
   });
   if(top[0]&&top[0].kind==="bus"&&focusStop!==top[0].r.atco){ focusStop=top[0].r.atco; drawDynamic(); }
 }
-function setMe(p,label){
-  me=p; setting=false; $("mapbox").classList.remove("setting"); $("maphint").hidden=true; $("tapset").classList.remove("on");
-  $("locmsg").textContent=label; render(); drawDynamic();
-}
-$("gps").onclick=()=>{
+function setMe(p,label){ me=p; setting=false; $("mapbox").classList.remove("setting"); $("hint").hidden=true; $("tapset").classList.remove("on"); $("locmsg").textContent=label; render(); drawDynamic(); }
+function locate(cb){
   if(!navigator.geolocation){ $("locmsg").textContent="Location isn't available here. Tap the map or pick a college."; return; }
   $("locmsg").textContent="Finding you…";
-  navigator.geolocation.getCurrentPosition(
-    p=>setMe([p.coords.latitude,p.coords.longitude],`Using your location (±${Math.round(p.coords.accuracy)} m).`),
-    ()=>{ $("locmsg").textContent="Location isn't available here (the Claude app blocks it). Tap the map or pick a college."; },
-    {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
-};
-$("tapset").onclick=()=>{ setting=!setting; $("mapbox").classList.toggle("setting",setting); $("maphint").hidden=!setting; $("tapset").classList.toggle("on",setting); if(setting) $("mapcard").scrollIntoView({behavior:"smooth",block:"start"}); };
+  navigator.geolocation.getCurrentPosition(p=>{ setMe([p.coords.latitude,p.coords.longitude],`Using your location (±${Math.round(p.coords.accuracy)} m).`); if(cb) cb(); },
+    ()=>{ $("locmsg").textContent="Location isn't available here. Tap the map or pick a college."; },{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
+}
+$("gps").onclick=()=>locate();
+$("locate").onclick=()=>locate(()=>centerOn(me,3));
+$("tapset").onclick=()=>{ setting=!setting; $("mapbox").classList.toggle("setting",setting); $("hint").hidden=!setting; $("tapset").classList.toggle("on",setting); if(setting&&!desktop()) setOpen(false); };
 (function(){ const s=$("atcol"); for(const c of COL.filter(c=>c[3]!=="C").concat(COL.filter(c=>c[3]==="C"))){ const o=document.createElement("option"); o.value=c[0]; o.textContent=c[0]; s.appendChild(o);} s.onchange=()=>{ const c=COL.find(x=>x[0]===s.value); if(c) setMe([c[1],c[2]],`At ${c[0]}'s porters' lodge.`); }; })();
 
 /* ---------- map ---------- */
 const NS="http://www.w3.org/2000/svg";
 const svg=$("map"); const world=document.createElementNS(NS,"g"); svg.appendChild(world);
-const gStatic=document.createElementNS(NS,"g"), gDyn=document.createElementNS(NS,"g"), gLabels=document.createElementNS(NS,"g");
-world.append(gStatic,gDyn,gLabels);
+const gStatic=document.createElementNS(NS,"g"), gLabels=document.createElementNS(NS,"g"); world.append(gStatic,gLabels);
 const el=(n,a,p)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
 const T="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef", CC="ghijklmnopqrstuvwxyz0123456789-_";
 function dec(s){const v=[];let z=0,mul=1;for(let i=0;i<s.length;i++){const ch=s[i];let k=T.indexOf(ch);if(k>=0){z+=k*mul;v.push(z&1?-(z+1)/2:z/2);z=0;mul=1}else{k=CC.indexOf(ch);if(k<0)return[];z+=k*mul;mul*=32}} const p=[];let x=0,y=0;for(let k=0;k+1<v.length;k+=2){x+=v[k];y+=v[k+1];p.push([x,y])}return p}
 const pathOf=(str,closed)=>{let d="";for(const f of str.split(" ")){const p=dec(f);if(p.length<2)continue;d+="M"+p.map(q=>q[0]+" "+q[1]).join("L")+(closed?"Z":"")}return d};
 const MD=window.MAPDATA||{};
-const BOUND={w:0,h:3284,x0:0,x1:3070};
 let view={s:1,tx:0,ty:0};
 const AOI=(()=>{const a=PX(52.2168,0.0978),b=PX(52.1958,0.1362);return {x0:a[0],y0:a[1],x1:b[0],y1:b[1]}})();
-function fit(){ const r=svg.getBoundingClientRect(); const w=AOI.x1-AOI.x0,h=AOI.y1-AOI.y0; const s=Math.min(r.width/w,r.height/h); view={s,tx:(r.width-w*s)/2-AOI.x0*s,ty:(r.height-h*s)/2-AOI.y0*s}; apply(); }
-function centerOn(ll,zoomRel){ const r=svg.getBoundingClientRect(); const base=Math.min(r.width/3070,r.height/3284); const s=Math.max(view.s,base*(zoomRel||2)); const [x,y]=PX(ll[0],ll[1]); view={s,tx:r.width/2-x*s,ty:r.height/2-y*s}; apply(); }
+function visibleRect(){ const r=svg.getBoundingClientRect(); const top=$("app").querySelector(".top").getBoundingClientRect().bottom-r.top+6; let left=0,bottom=r.height;
+  const sh=$("sheet").getBoundingClientRect(); if(desktop()){ if($("sheet").dataset.open==="1") left=$("sheet").offsetWidth; } else bottom=Math.min(r.height,sh.top-r.top); return {x:left,y:top,w:r.width-left-64,h:Math.max(120,bottom-top),W:r.width,H:r.height}; }
+function fit(){ const v=visibleRect(); const w=AOI.x1-AOI.x0,h=AOI.y1-AOI.y0; const s=Math.min(v.w/w,v.h/h); view={s,tx:v.x+(v.w-w*s)/2-AOI.x0*s,ty:v.y+(v.h-h*s)/2-AOI.y0*s}; apply(); }
+function baseScale(){ const v=visibleRect(); return Math.min(v.w/(AOI.x1-AOI.x0),v.h/(AOI.y1-AOI.y0)); }
+function centerOn(ll,zoomRel){ if(!ll) return; const v=visibleRect(); const s=Math.max(view.s,baseScale()*(zoomRel||2)); const [x,y]=PX(ll[0],ll[1]); view={s,tx:v.x+v.w/2-x*s,ty:v.y+v.h/2-y*s}; apply(); }
 function apply(){ world.setAttribute("transform",`translate(${view.tx} ${view.ty}) scale(${view.s})`); labelScale(); }
-function zoomAt(f,cx,cy){ const r=svg.getBoundingClientRect(); const base=Math.min(r.width/3070,r.height/3284); const ns=Math.min(Math.max(view.s*f,base*0.8),base*14); const k=ns/view.s; view.tx=cx-(cx-view.tx)*k; view.ty=cy-(cy-view.ty)*k; view.s=ns; apply(); }
+function zoomAt(f,cx,cy){ const b=baseScale(); const ns=Math.min(Math.max(view.s*f,b*0.3),b*16); const k=ns/view.s; view.tx=cx-(cx-view.tx)*k; view.ty=cy-(cy-view.ty)*k; view.s=ns; apply(); }
 
 function drawStatic(){
   gStatic.innerHTML="";
   if(MD.green) el("path",{d:pathOf(MD.green,true),fill:"var(--m-green)"},gStatic);
   if(MD.water) el("path",{d:pathOf(MD.water,true),fill:"var(--m-water)"},gStatic);
   if(MD.river) el("path",{d:pathOf(MD.river,false),fill:"none",stroke:"var(--m-water)","stroke-width":9,"stroke-linecap":"round","stroke-linejoin":"round"},gStatic);
-  // college grounds
   const cg=el("g",{},gStatic);
   if(MD.cols) for(const [k,s] of Object.entries(MD.cols)){ const c=CLUSTER[k]||"C"; const outer=c!=="C"; if(outer&&!show[c]) continue; const col=outer?`var(${CL[c].c})`:"var(--central)";
-    el("path",{d:pathOf(s,true),fill:col,"fill-opacity":outer?.16:.10,stroke:col,"stroke-width":outer?2.2:1.4,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"},cg); }
+    el("path",{d:pathOf(s,true),fill:col,"fill-opacity":outer?.16:.08,stroke:col,"stroke-width":outer?2.2:1.2,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"},cg); }
   if(MD.bld) el("path",{d:pathOf(MD.bld,true),fill:"var(--m-bld)",stroke:"var(--m-bldl)","stroke-width":.6,"vector-effect":"non-scaling-stroke"},gStatic);
   const roads=[["r3",5,"var(--m-road)"],["r2",8,"var(--m-road)"],["r1",11,"var(--m-main)"]];
   for(const [k,w] of roads) if(MD[k]) el("path",{d:pathOf(MD[k],false),fill:"none",stroke:"var(--m-roadc)","stroke-width":w+2.5,"stroke-linecap":"round","stroke-linejoin":"round"},gStatic);
   for(const [k,w,c] of roads) if(MD[k]) el("path",{d:pathOf(MD[k],false),fill:"none",stroke:c,"stroke-width":w,"stroke-linecap":"round","stroke-linejoin":"round"},gStatic);
   if(MD.r4) el("path",{d:pathOf(MD.r4,false),fill:"none",stroke:"var(--m-road)","stroke-width":4,"stroke-dasharray":"6 4"},gStatic);
-  // bus corridors
   for(const [c,list] of Object.entries(ROUTES)){ if(!show[c]) continue; for(const r of list){
-    el("path",{d:pathOf(r,false),fill:"none",stroke:"var(--m-land)","stroke-width":6,"vector-effect":"non-scaling-stroke","stroke-linecap":"round","stroke-linejoin":"round",opacity:.7},gStatic);
-    el("path",{d:pathOf(r,false),fill:"none",stroke:`var(${CL[c].c})`,"stroke-width":3,"stroke-dasharray":"9 5","vector-effect":"non-scaling-stroke","stroke-linecap":"round","stroke-linejoin":"round"},gStatic); } }
+    el("path",{d:pathOf(r,false),fill:"none",stroke:"var(--m-land)","stroke-width":7,"vector-effect":"non-scaling-stroke","stroke-linecap":"round","stroke-linejoin":"round",opacity:.7},gStatic);
+    el("path",{d:pathOf(r,false),fill:"none",stroke:`var(${CL[c].c})`,"stroke-width":3.5,"stroke-dasharray":"10 5","vector-effect":"non-scaling-stroke","stroke-linecap":"round","stroke-linejoin":"round"},gStatic); } }
 }
 
 let labelEls=[];
 function drawDynamic(){
-  gDyn.innerHTML=""; gLabels.innerHTML=""; labelEls=[];
-  // stops
+  gLabels.innerHTML=""; labelEls=[];
+  const small=svg.getBoundingClientRect().width<600;
   const used=new Set(GROUPS.flatMap(g=>g.rows.map(r=>r.atco)));
   const cur=new Set(GROUPS.find(g=>g.id===tab).rows.map(r=>r.atco));
-  // merge stops within 200 m (e.g. all the Emmanuel St / Drummer St / St Andrew's St bays) into one marker
   const clusters=[];
   for(const a of used){ const p=STOP[a]; if(!p) continue; const xy=PX(p[0],p[1]);
     let c=clusters.find(c=>Math.hypot(c.sx-xy[0],c.sy-xy[1])<200); if(!c){c={sx:xy[0],sy:xy[1],x:xy[0],y:xy[1],n:0,ids:[]};clusters.push(c)} c.x=(c.x*c.n+xy[0])/(c.n+1); c.y=(c.y*c.n+xy[1])/(c.n+1); c.n++; c.ids.push(a); }
   for(const c of clusters){ const x=c.x,y=c.y; const on=c.ids.some(a=>cur.has(a)), f=c.ids.includes(focusStop);
     const g=el("g",{"data-k":"stop","data-x":x,"data-y":y},gLabels);
-    if(f) el("circle",{cx:x,cy:y,r:15,fill:"none",stroke:"var(--live)","stroke-width":3,"vector-effect":"non-scaling-stroke"},g);
-    el("rect",{x:x-6,y:y-6,width:12,height:12,rx:3,fill:on?"var(--chip)":"var(--panel)",stroke:"var(--chip)","stroke-width":1.5,"vector-effect":"non-scaling-stroke"},g);
-    const tt=el("title",{},g); tt.textContent=c.n>1?`${c.n} stops`:"Bus stop";
+    if(f) el("circle",{cx:x,cy:y,r:17,fill:"var(--live)","fill-opacity":.18,stroke:"var(--live)","stroke-width":3},g);
+    el("rect",{x:x-7,y:y-7,width:14,height:14,rx:4,fill:on?"var(--chip)":"var(--panel)",stroke:"var(--chip)","stroke-width":2},g);
+    el("path",{d:`M${x-3.5} ${y+2.5}h7M${x-3.5} ${y-1}h7`,stroke:on?"var(--chipfg)":"var(--chip)","stroke-width":1.6},g);
     labelEls.push(g); }
-  const r0w=svg.getBoundingClientRect().width;
-  // lodges
   for(const c of COL){ const k=c[3], outer=k!=="C"; if(outer&&!show[k]) continue; const [x,y]=PX(c[1],c[2]);
     const g=el("g",{"data-k":outer?"outer":"central","data-x":x,"data-y":y},gLabels);
-    el("circle",{cx:x,cy:y,r:outer?7:5,fill:outer?`var(${CL[k].c})`:"var(--central)",stroke:"var(--panel)","stroke-width":2,"vector-effect":"non-scaling-stroke"},g);
-    const t=el("text",{x:x+10,y:y+5,"font-family":"var(--body)","font-weight":outer?700:600,"font-size":outer?(r0w<500?13:16):(r0w<500?11:13),fill:outer?`var(${CL[k].c})`:"var(--muted)",stroke:"var(--m-land)","stroke-width":4,"paint-order":"stroke"},g); t.textContent=c[0];
+    el("circle",{cx:x,cy:y,r:outer?8:5,fill:outer?`var(${CL[k].c})`:"var(--central)",stroke:"var(--panel)","stroke-width":2.5},g);
+    const t=el("text",{x:x+11,y:y+5,"font-family":"var(--body)","font-weight":outer?700:600,"font-size":outer?(small?15:16):(small?12:13),fill:outer?`var(${CL[k].c})`:"var(--muted)",stroke:"var(--m-land)","stroke-width":4,"paint-order":"stroke"},g); t.textContent=c[0];
     labelEls.push(g); }
-  // hubs
   for(const h of HUBS){ const [x,y]=PX(h[1],h[2]); const g=el("g",{"data-k":"hub","data-x":x,"data-y":y},gLabels);
-    const t=el("text",{x:x,y:y-14,"text-anchor":"middle","font-family":"var(--display)","font-weight":700,"font-size":19,fill:"var(--ink)",stroke:"var(--m-land)","stroke-width":5,"paint-order":"stroke"},g); t.textContent=h[0]; labelEls.push(g); }
-  // live buses
+    const t=el("text",{x:x,y:y-14,"text-anchor":"middle","font-family":"var(--display)","font-weight":700,"font-size":small?18:20,fill:"var(--ink)",stroke:"var(--m-land)","stroke-width":5,"paint-order":"stroke"},g); t.textContent=h[0]; labelEls.push(g); }
   if(live&&live.vehicles){ for(const v of live.vehicles){ const [x,y]=PX(v.lat,v.lon); if(x<-50||x>3120||y<-50||y>3330) continue;
     const g=el("g",{"data-k":"bus","data-x":x,"data-y":y},gLabels);
     const bw=v.line.length>2?30:26, bh=15, bx=x-bw/2, by=y-bh/2;
-    el("rect",{x:bx,y:by,width:bw,height:bh,rx:3,fill:"var(--live)",stroke:"var(--panel)","stroke-width":1.2},g);
+    el("rect",{x:bx,y:by,width:bw,height:bh,rx:3.5,fill:"var(--live)",stroke:"var(--panel)","stroke-width":1.4},g);
     el("rect",{x:bx+2.5,y:by+2.5,width:bw-5,height:8.5,rx:1.5,fill:"var(--panel)"},g);
-    el("circle",{cx:bx+6,cy:by+bh,r:2.3,fill:"var(--ink)"},g); el("circle",{cx:bx+bw-6,cy:by+bh,r:2.3,fill:"var(--ink)"},g);
-    const t=el("text",{x:x,y:by+9.6,"text-anchor":"middle","font-family":"var(--display)","font-size":9.5,"font-weight":700,fill:"var(--ink)"},g); t.textContent=v.line;
+    el("circle",{cx:bx+6,cy:by+bh,r:2.4,fill:"var(--ink)"},g); el("circle",{cx:bx+bw-6,cy:by+bh,r:2.4,fill:"var(--ink)"},g);
+    const t=el("text",{x:x,y:by+9.7,"text-anchor":"middle","font-family":"var(--display)","font-size":9.5,"font-weight":700,fill:"var(--ink)"},g); t.textContent=v.line;
     const tt=el("title",{},g); tt.textContent=`${v.line} to ${v.dest}`+(v.delay!=null?` · ${Math.round(v.delay/60)} min ${v.delay>=0?"late":"early"}`:"");
     labelEls.push(g); } }
-  // me
   if(me){ const [x,y]=PX(me[0],me[1]); const g=el("g",{"data-k":"me","data-x":x,"data-y":y},gLabels);
-    el("circle",{cx:x,cy:y,r:18,fill:"var(--me)","fill-opacity":.18},g); el("circle",{cx:x,cy:y,r:7,fill:"var(--me)",stroke:"#fff","stroke-width":2.5},g); labelEls.push(g); }
+    el("circle",{cx:x,cy:y,r:20,fill:"var(--me)","fill-opacity":.18},g); el("circle",{cx:x,cy:y,r:8,fill:"var(--me)",stroke:"#fff","stroke-width":3},g); labelEls.push(g); }
   labelScale();
-  const lg=$("legend");
-  lg.innerHTML=`<span><span class="sw" style="background:var(--west)"></span> West</span><span><span class="sw" style="background:var(--nw)"></span> North-west</span><span><span class="sw" style="background:var(--east)"></span> East</span><span><span class="sw" style="background:var(--central)"></span> Central</span><span>● porters' lodge</span><span>■ bus stop (filled = this tab)</span><span>- - bus route</span>`+(live?`<span style="color:var(--live)">▬ live bus</span>`:"")+(me?`<span style="color:var(--me)">● you</span>`:"");
 }
 function labelScale(){
-  const r=svg.getBoundingClientRect(); const base=Math.min(r.width/3070,r.height/3284)||1; const rel=view.s/base;
-  const k=1/view.s; const boxes=[]; const hit=b=>boxes.some(o=>b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1]);
+  const v=visibleRect(); const rel=view.s/(baseScale()||1); const k=1/view.s; const boxes=[];
+  const hit=b=>boxes.some(o=>b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1]);
   const scr=g=>[view.tx+(+g.dataset.x)*view.s, view.ty+(+g.dataset.y)*view.s];
   for(const g of labelEls){ const x=+g.dataset.x,y=+g.dataset.y; g.setAttribute("transform",`translate(${x} ${y}) scale(${k}) translate(${-x} ${-y})`);
-    const [sx,sy]=scr(g); const rr=g.dataset.k==="stop"?7:g.dataset.k==="bus"?11:g.dataset.k==="hub"?0:g.dataset.k==="central"?5:8; if(rr) boxes.push([sx-rr,sy-rr,sx+rr,sy+rr]); }
+    const [sx,sy]=scr(g); const rr={stop:8,bus:12,hub:0,central:5,outer:9,me:9}[g.dataset.k]||0; if(rr) boxes.push([sx-rr,sy-rr,sx+rr,sy+rr]); }
   const pri={me:0,hub:1,outer:2,central:3};
   const withText=labelEls.filter(g=>g.querySelector("text")&&g.dataset.k in pri).sort((a,b)=>pri[a.dataset.k]-pri[b.dataset.k]);
   for(const g of withText){ const t=g.querySelector("text"); const x=+g.dataset.x,y=+g.dataset.y; const [sx,sy]=scr(g);
     if(g.dataset.k==="central"&&rel<2.2){ t.style.display="none"; continue; }
     t.style.display=""; const fs=+t.getAttribute("font-size"); let w=t._w; if(!w){ try{w=t.getComputedTextLength()}catch(e){} if(!w) w=t.textContent.length*fs*0.56; t._w=w; }
     const hubk=g.dataset.k==="hub";
-    const cand=hubk?[["middle",0,-12],["middle",0,24],["start",12,6],["end",-12,6]]:[["start",10,5],["end",-10,5],["middle",0,-10],["middle",0,fs+8],["start",9,-7],["start",9,fs+2],["end",-9,-7],["end",-9,fs+2]];
+    const cand=hubk?[["middle",0,-13],["middle",0,26],["start",13,6],["end",-13,6]]:[["start",12,5],["end",-12,5],["middle",0,-12],["middle",0,fs+9],["start",10,-8],["start",10,fs+3],["end",-10,-8],["end",-10,fs+3]];
     let ok=false;
     for(const [a,dx,dy] of cand){ const left=a==="start"?sx+dx:a==="end"?sx+dx-w:sx+dx-w/2; const b=[left-2,sy+dy-fs*0.82,left+w+2,sy+dy+fs*0.22];
-      if(b[0]>=2&&b[2]<=r.width-(b[1]<140?52:2)&&b[1]>=2&&b[3]<=r.height-2&&!hit(b)){ t.setAttribute("text-anchor",a); t.setAttribute("x",x+dx); t.setAttribute("y",y+dy); boxes.push(b); ok=true; break; } }
+      if(b[0]>=v.x+2&&b[2]<=v.W-58&&b[1]>=v.y&&b[3]<=v.y+v.h&&!hit(b)){ t.setAttribute("text-anchor",a); t.setAttribute("x",x+dx); t.setAttribute("y",y+dy); boxes.push(b); ok=true; break; } }
     if(!ok) t.style.display="none"; }
 }
-/* pan / zoom / tap */
+function refit(){ for(const t of svg.querySelectorAll("text")) t._w=0; drawDynamic(); fit(); }
+
 (function(){
-  const box=$("mapbox"); const pts=new Map(); let last=null, moved=0, pinch=null;
-  box.addEventListener("pointerdown",e=>{ if(e.target.closest(".mapctl")) return; box.setPointerCapture(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]); moved=0; last=[e.clientX,e.clientY];
-    if(pts.size===2){ const [a,b]=[...pts.values()]; pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1])}; } });
+  const box=$("mapbox"); const pts=new Map(); let moved=0, pinch=null;
+  box.addEventListener("pointerdown",e=>{ box.setPointerCapture(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]); moved=0; if(pts.size===2){ const [a,b]=[...pts.values()]; pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1])}; } });
   box.addEventListener("pointermove",e=>{ if(!pts.has(e.pointerId)) return; const prev=pts.get(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]);
     if(pts.size===2&&pinch){ const [a,b]=[...pts.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]); const r=svg.getBoundingClientRect(); zoomAt(d/pinch.d,(a[0]+b[0])/2-r.left,(a[1]+b[1])/2-r.top); pinch.d=d; moved+=10; return; }
     const dx=e.clientX-prev[0], dy=e.clientY-prev[1]; moved+=Math.abs(dx)+Math.abs(dy); view.tx+=dx; view.ty+=dy; apply(); });
   const end=e=>{ if(!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if(pts.size<2) pinch=null;
-    if(pts.size===0&&moved<8&&setting){ const r=svg.getBoundingClientRect(); const x=(e.clientX-r.left-view.tx)/view.s, y=(e.clientY-r.top-view.ty)/view.s; setMe([LAT0-y/KY, LON0+x/KX],"Using the spot you tapped."); } };
+    if(pts.size===0&&moved<8&&setting){ const r=svg.getBoundingClientRect(); const x=(e.clientX-r.left-view.tx)/view.s, y=(e.clientY-r.top-view.ty)/view.s; setMe([LAT0-y/KY, LON0+x/KX],"Using the spot you tapped."); if(!desktop()) setOpen(true); } };
   box.addEventListener("pointerup",end); box.addEventListener("pointercancel",end);
   box.addEventListener("wheel",e=>{ e.preventDefault(); const r=svg.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top); },{passive:false});
-  $("zin").onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(1.5,r.width/2,r.height/2)};
-  $("zout").onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(1/1.5,r.width/2,r.height/2)};
+  const mid=()=>{const v=visibleRect();return [v.x+v.w/2,v.y+v.h/2]};
+  $("zin").onclick=()=>{const [x,y]=mid();zoomAt(1.6,x,y)};
+  $("zout").onclick=()=>{const [x,y]=mid();zoomAt(1/1.6,x,y)};
   $("zfit").onclick=fit;
-  window.addEventListener("resize",()=>{ fit(); });
+  let rt; window.addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(()=>{ setOpen($("sheet").dataset.open==="1"); drawDynamic(); fit(); },120); });
 })();
 
-/* ---------- live data (only reachable outside the Claude app) ---------- */
+/* ---------- live data (works outside the Claude app) ---------- */
 const LINES=new Set(GROUPS.flatMap(g=>g.rows.map(r=>r.line)));
 const ATCOS=new Set(GROUPS.flatMap(g=>g.rows.map(r=>r.atco)));
 const tripCache=new Map();
-async function getTrip(id){ if(tripCache.has(id)) return tripCache.get(id);
-  const p=fetch(`https://bustimes.org/api/trips/${id}/`).then(r=>r.ok?r.json():null).catch(()=>null); tripCache.set(id,p); return p }
+async function getTrip(id){ if(tripCache.has(id)) return tripCache.get(id); const p=fetch(`https://bustimes.org/api/trips/${id}/`).then(r=>r.ok?r.json():null).catch(()=>null); tripCache.set(id,p); return p }
 async function poll(){
   try{
     const r=await fetch("https://bustimes.org/vehicles.json?ymax=52.225&xmax=0.145&ymin=52.185&xmin=0.09",{cache:"no-store"});
     if(!r.ok) throw new Error(r.status);
     const vs=await r.json(); const delay=new Map(); const vehicles=[];
     const ours=vs.filter(v=>v.service&&LINES.has(v.service.line_name));
-    for(const v of ours){ vehicles.push({lat:v.coordinates[1],lon:v.coordinates[0],line:v.service.line_name,dest:v.destination||"",delay:v.delay??null}) }
-    await Promise.all(ours.filter(v=>v.trip_id&&v.delay!=null).map(async v=>{
-      const t=await getTrip(v.trip_id); if(!t||!t.times) return;
-      for(const s of t.times){ const a=s.stop&&s.stop.atco_code; if(a&&ATCOS.has(a)){ const hm=(s.aimed_departure_time||s.aimed_arrival_time||"").slice(0,5); if(hm) delay.set(v.service.line_name+"|"+a+"|"+hm,v.delay) } }
-    }));
+    for(const v of ours) vehicles.push({lat:v.coordinates[1],lon:v.coordinates[0],line:v.service.line_name,dest:v.destination||"",delay:v.delay??null});
+    await Promise.all(ours.filter(v=>v.trip_id&&v.delay!=null).map(async v=>{ const t=await getTrip(v.trip_id); if(!t||!t.times) return;
+      for(const s of t.times){ const a=s.stop&&s.stop.atco_code; if(a&&ATCOS.has(a)){ const hm=(s.aimed_departure_time||s.aimed_arrival_time||"").slice(0,5); if(hm) delay.set(v.service.line_name+"|"+a+"|"+hm,v.delay) } } }));
     live={delay,vehicles,at:new Date()};
-    $("live").classList.add("on"); $("livetxt").textContent="Live";
-    $("livemsg").textContent=`${vehicles.length} buses tracked · ${pad(live.at.getHours())}:${pad(live.at.getMinutes())}`+(isPreview()?" · Sat buses; delays from Sun":"");
+    $("livedot").classList.add("on");
+    $("livemsg").textContent=`Live · ${vehicles.length} buses`+(isPreview()?" (Sat)":"");
     render(); drawDynamic(); setTimeout(poll,20000);
   }catch(e){
-    if(!live) $("livemsg").textContent="Live off in Claude app · use live ↗ links";
-    else { $("livemsg").textContent="Live feed paused, retrying"; setTimeout(poll,30000); }
+    if(!live) $("livemsg").textContent="Timetable only here";
+    else { $("livemsg").textContent="Live paused"; setTimeout(poll,30000); }
   }
 }
 
@@ -508,8 +532,7 @@ function tick(){
   render(); if(tab==="back"&&me) drawDynamic();
 }
 $("pv").addEventListener("input",e=>{ pvMin=+e.target.value; tick(); });
-$("pvnow").onclick=()=>{ const r=Math.round(realMin()); pvMin=Math.min(1020,Math.max(600,r)); $("pv").value=pvMin; tick(); };
 
-renderTabs(); drawStatic(); drawDynamic(); fit(); tick(); setInterval(tick,20000); poll();
+renderTabs(); setOpen(desktop()); drawStatic(); drawDynamic(); tick(); fit(); setTimeout(refit,350); if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>setTimeout(refit,50)); setInterval(tick,20000); poll();
 })();
 </script>
