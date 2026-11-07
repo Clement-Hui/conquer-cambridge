@@ -86,6 +86,34 @@ h1{font-family:var(--display);font-weight:700;font-size:22px;margin:0;line-heigh
 .d.late{color:var(--late)} .d.ok{color:var(--live)} .d.early{color:var(--early)}
 .live{font-size:13px;color:var(--muted);text-decoration:none;margin-left:6px;font-weight:600}
 .empty{padding:16px 0;color:var(--muted)}
+:root{--flag:#e0a800;--flagt:#8a6400;--flagbg:#fff6d6}
+body.dark{--flag:#f5c542;--flagt:#f5c542;--flagbg:#3a3220}
+body.hasflags{--peek:222px}
+.fchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;align-items:center}
+.fchips::-webkit-scrollbar{display:none}
+.fchip{display:inline-flex;align-items:center;gap:2px;border-radius:999px;background:var(--flagbg);border:1.5px solid var(--flag);color:var(--ink);font-weight:700;font-size:15px;white-space:nowrap;flex:none}
+.fchip .go{border:0;background:none;padding:5px 4px 5px 11px;font-weight:700}
+.fchip .x{border:0;background:none;padding:5px 10px 5px 4px;color:var(--muted);font-size:17px;line-height:1}
+.fchips .cnt{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;flex:none;margin-right:2px}
+.boardsec{background:var(--flagbg);border-radius:14px;padding:10px 12px;margin:0 0 10px;display:grid;gap:8px}
+.boardsec .bh{display:flex;align-items:baseline;gap:8px}
+.boardsec h2{font-family:var(--display);font-size:21px;margin:0}
+.boardsec .bh span{color:var(--muted);font-size:14px}
+.boardsec .bh button{margin-left:auto;border:0;background:none;color:var(--muted);font-weight:600;font-size:14px;text-decoration:underline;padding:2px 0}
+.boardsec select{font:600 15px var(--body);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:8px 12px;max-width:100%}
+.boardsec .tip{font-size:14px;color:var(--muted)}
+.row.hit{background:linear-gradient(90deg,var(--flagbg),transparent 70%);box-shadow:inset 3px 0 0 var(--flag)}
+.hitline{font-size:14px;font-weight:700;color:var(--flagt);margin-top:2px}
+.filters button.flagf[aria-pressed="true"]{background:var(--flagbg);border-color:var(--flag);opacity:1}
+.filters button.flagf[aria-pressed="false"]{opacity:.75}
+.flagbar{position:absolute;left:max(12px,env(safe-area-inset-left,0px));right:68px;bottom:calc(var(--peek) + env(safe-area-inset-bottom,0px) + 14px);z-index:5;background:var(--panel);border-radius:16px;box-shadow:var(--shadow);padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center}
+.flagbar .dot2{width:14px;height:14px;border-radius:50%}
+.flagbar .nm{font-weight:700;font-size:17px;line-height:1.2}
+.flagbar .sub{font-size:14px;color:var(--muted)}
+.flagbar .fb{border:0;border-radius:999px;padding:9px 14px;font-weight:700;font-size:15px;background:var(--flag);color:#1d2321;white-space:nowrap}
+.flagbar .fb.on{background:var(--bg);color:var(--ink)}
+.flagbar .cl{border:0;background:none;font-size:22px;color:var(--muted);padding:0 4px;line-height:1}
+@media (min-width:900px){ .flagbar{left:calc(var(--panel-w) + 16px);right:auto;bottom:16px;width:400px} body.panel-closed .flagbar{left:16px} }
 
 .planner{background:var(--bg);border-radius:14px;padding:12px;margin:0 0 10px;display:grid;gap:10px}
 .planner h2{font-family:var(--display);font-size:22px;margin:0}
@@ -127,6 +155,7 @@ details.about div{margin-top:6px;display:grid;gap:6px}
   <div class="mapbox" id="mapbox"><svg class="map" id="map" role="img" aria-label="Map of Cambridge colleges, buildings, roads, bus routes and stops"></svg></div>
   <div class="ctl"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="locate" aria-label="Show my location" title="My location">◎</button><button type="button" id="zfit" class="small" aria-label="Show all colleges">All</button></div>
   <div class="hint" id="hint" hidden>Tap where you are</div>
+  <div class="flagbar" id="flagbar" hidden></div>
 
   <header class="top">
     <div class="r1"><h1>Conquer Cambridge</h1><span class="clock" id="clock">--:--</span></div>
@@ -140,9 +169,15 @@ details.about div{margin-top:6px;display:grid;gap:6px}
     <button type="button" class="grab" id="grab" aria-expanded="false"><span class="bar"></span><span class="lbl" id="grablbl">Departures</span></button>
     <div class="shead">
       <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="fchips" id="fchips" hidden></div>
       <div class="peeknext" id="peeknext"></div>
     </div>
     <div class="sbody" id="sbody">
+      <section class="boardsec" id="boardsec">
+        <div class="bh"><h2>⚑ On the board</h2><span id="bcount">0 flagged</span><button type="button" id="bclear" hidden>Clear all</button></div>
+        <select id="badd" aria-label="Flag a college as on the board"><option value="">Flag a college…</option></select>
+        <div class="tip">Or tap any college on the map. Buses to flagged colleges are highlighted.</div>
+      </section>
       <div class="filters" id="filters"></div>
       <p class="note" id="tabnote"></p>
       <section class="planner" id="planner" hidden>
@@ -279,6 +314,37 @@ const ROUTES={W:["miD2rE_BtDbpCFfxH4BnBMzCkCdmBjB-BJKnC6BlE4CvC9I7BzHpCS1BG_XiC2
 const $=id=>document.getElementById(id);
 const desktop=()=>window.matchMedia("(min-width:900px)").matches;
 let tab="emma", show={W:true,N:true,E:true,F:true}, live=null, me=null, focusStop=null, setting=false;
+let flags=new Set(), onlyFlag=false, fbCol=null;
+try{ const f=JSON.parse(localStorage.getItem("cc-flags")||"[]"); if(Array.isArray(f)) flags=new Set(f.filter(n=>COL.some(c=>c[0]===n))); }catch(e){}
+const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+const ALIAS={"Lucy Cav":["Lucy"],"Murray Edwards":["Murray Edwards","Medwards"],"Hughes":["Hughes"],"Emma":["Emma(?![a-z])"],"Clare":["Clare(?! Hall)"],"Fitz":["Fitz"]};
+function hitsOf(r){ if(!flags.size) return []; const txt=r.d.map(d=>d[1]+" "+d[2]).join(" | ");
+  return [...flags].filter(f=>(ALIAS[f]||[esc(f)]).some(a=>new RegExp("(^|[^A-Za-z])"+a).test(txt))); }
+function saveFlags(){ try{ localStorage.setItem("cc-flags",JSON.stringify([...flags])); }catch(e){} }
+function toggleFlag(name){ if(flags.has(name)) flags.delete(name); else flags.add(name); saveFlags(); renderFlags(); render(); drawStatic(); drawDynamic(); renderFlagbar(); }
+function renderFlags(){
+  const has=flags.size>0; document.body.classList.toggle("hasflags",has);
+  $("bcount").textContent=has?`${flags.size} flagged`+(flags.size>7?" (board has 7)":""):"none flagged"; $("bclear").hidden=!has;
+  const fc=$("fchips"); fc.innerHTML=""; fc.hidden=!has;
+  if(has){ const c=document.createElement("span"); c.className="cnt"; c.textContent="⚑ Board"; fc.appendChild(c);
+    for(const n of [...flags].sort()){ const ch=document.createElement("span"); ch.className="fchip";
+      const go=document.createElement("button"); go.type="button"; go.className="go"; go.textContent=n; go.title="Show on map"; go.onclick=()=>{ const cc=COL.find(x=>x[0]===n); if(!desktop()) setOpen(false); setTimeout(()=>{ centerOn([cc[1],cc[2]],3); fbCol=n; renderFlagbar(); },desktop()?0:300); };
+      const x=document.createElement("button"); x.type="button"; x.className="x"; x.textContent="×"; x.setAttribute("aria-label","Unflag "+n); x.onclick=()=>toggleFlag(n);
+      ch.append(go,x); fc.appendChild(ch); } }
+  const s=$("badd"); s.innerHTML='<option value="">Flag a college…</option>';
+  for(const c of COL.map(c=>c[0]).filter(n=>!flags.has(n)).sort()){ const o=document.createElement("option"); o.value=c; o.textContent=c; s.appendChild(o); }
+}
+function renderFlagbar(){
+  const fb=$("flagbar"); if(!fbCol){ fb.hidden=true; return; } fb.hidden=false; fb.innerHTML="";
+  const c=COL.find(x=>x[0]===fbCol); const k=c[3]; const on=flags.has(fbCol);
+  const d=document.createElement("span"); d.className="dot2"; d.style.background=k==="C"?"var(--central)":`var(${CL[k].c})`;
+  const mid=document.createElement("div"); const nm=document.createElement("div"); nm.className="nm"; nm.textContent=fbCol;
+  const sub=document.createElement("div"); sub.className="sub"; sub.textContent=[on?"On your board":(k==="C"?"Central":CL[k].name), me?`${Math.max(1,Math.round(walkMin(me,[c[1],c[2]])))} min walk`:""].filter(Boolean).join(" · ");
+  mid.append(nm,sub);
+  const b=document.createElement("button"); b.type="button"; b.className="fb"+(on?" on":""); b.textContent=on?"Unflag":"⚑ Flag"; b.onclick=()=>toggleFlag(fbCol);
+  const x=document.createElement("button"); x.type="button"; x.className="cl"; x.textContent="×"; x.setAttribute("aria-label","Close"); x.onclick=()=>{ fbCol=null; renderFlagbar(); labelScale(); };
+  fb.append(d,mid,b,x);
+}
 try{const s=localStorage.getItem("cc-tab"); if(s && GROUPS.some(g=>g.id===s)) tab=s; if(localStorage.getItem("cc-dark")) document.body.classList.add("dark");}catch(e){}
 const setTheme=()=>{ const d=document.body.classList.contains("dark"); $("theme").textContent=d?"Light mode":"Dark mode"; document.querySelector('meta[name=theme-color]').content=d?"#121614":"#f4f5f2"; };
 $("theme").onclick=()=>{ const d=document.body.classList.toggle("dark"); try{localStorage.setItem("cc-dark",d?"1":"")}catch(e){} setTheme(); };
@@ -316,6 +382,7 @@ function renderTabs(){
   for(const g of GROUPS){const b=document.createElement("button");b.type="button";b.setAttribute("role","tab");b.id="tab-"+g.id;b.textContent=g.name;b.setAttribute("aria-selected",g.id===tab);b.onclick=()=>{tab=g.id;try{localStorage.setItem("cc-tab",tab)}catch(e){}renderTabs();render();drawDynamic()};el.appendChild(b)}
   const f=$("filters"); f.innerHTML="";
   for(const k of ["W","N","E"]){const b=document.createElement("button");b.type="button";b.id="f-"+k;b.setAttribute("aria-pressed",show[k]);b.innerHTML=`<span class="sw" style="background:var(${CL[k].c})"></span>`;b.append(CL[k].name);b.title=CL[k].cols;b.onclick=()=>{show[k]=!show[k];renderTabs();render();drawStatic();drawDynamic()};f.appendChild(b)}
+  { const b=document.createElement("button"); b.type="button"; b.id="f-flag"; b.className="flagf"; b.setAttribute("aria-pressed",onlyFlag); b.textContent="⚑ Board only"; b.onclick=()=>{ onlyFlag=!onlyFlag; renderTabs(); render(); }; f.appendChild(b); }
   $("planner").hidden=tab!=="back";
 }
 function focusOn(atco){ focusStop=atco; drawDynamic(); if(!desktop()) setOpen(false); setTimeout(()=>centerOn(STOP[atco],3),desktop()?0:300); }
@@ -324,12 +391,12 @@ function render(){
   const g=GROUPS.find(x=>x.id===tab); const m=nowMin(); const start=m-0.5;
   $("tabnote").textContent=g.note;
   const items=[];
-  for(const r of g.rows){ if(!r.d.some(d=>show[d[0]])) continue; const up=upcoming(r,start); items.push({r,up,first:up.length?up[0].eff:99999}); }
+  for(const r of g.rows){ if(!r.d.some(d=>show[d[0]])) continue; const hits=hitsOf(r); if(onlyFlag&&!hits.length) continue; const up=upcoming(r,start); items.push({r,up,hits,first:up.length?up[0].eff:99999}); }
   items.sort((a,b)=>a.first-b.first);
   const board=$("board"); board.innerHTML="";
-  if(!items.length) board.innerHTML='<div class="empty">No routes match the cluster filters.</div>';
+  if(!items.length) board.innerHTML=onlyFlag?(flags.size?'<div class="empty">No buses from here go to your flagged colleges.</div>':'<div class="empty">Flag the colleges on the board first.</div>'):'<div class="empty">No routes match the cluster filters.</div>';
   for(const it of items){
-    const r=it.r, row=document.createElement("div"); row.className="row"; row.tabIndex=0; row.setAttribute("role","button");
+    const r=it.r, row=document.createElement("div"); row.className="row"+(it.hits.length?" hit":""); row.tabIndex=0; row.setAttribute("role","button");
     row.onclick=e=>{ if(e.target.closest("a")) return; focusOn(r.atco); };
     row.onkeydown=e=>{ if(e.key==="Enter") focusOn(r.atco); };
     const line=document.createElement("div"); line.className="line"; line.style.background=lineColor(r); line.textContent=r.line;
@@ -340,7 +407,9 @@ function render(){
     const ds=document.createElement("div"); ds.className="dests";
     const parts=r.d.filter(d=>show[d[0]]).map(d=>{const s=document.createElement("span");const b=document.createElement("b");b.textContent=(d[3]?"+"+d[3]+" ":"")+d[1];s.appendChild(b);if(d[2])s.append(" ("+d[2]+")");return s});
     parts.forEach((p,i)=>{ if(i) ds.append(" · "); ds.appendChild(p); });
-    mid.append(st,ds);
+    mid.append(st);
+    if(it.hits.length){ const h=document.createElement("div"); h.className="hitline"; h.textContent="⚑ "+it.hits.join(", "); mid.appendChild(h); }
+    mid.append(ds);
     if(it.up.length>1){ const th=document.createElement("div"); th.className="then"; th.append("then ");
       it.up.slice(1,4).forEach((u,i)=>{ if(i) th.append(" · "); th.append(u.t); const c=delayChip(u.lv); if(c) th.appendChild(c); }); mid.appendChild(th); }
     const w=document.createElement("div"); w.className="when";
@@ -352,7 +421,9 @@ function render(){
   }
   // peek summary
   const pk=$("peeknext"); pk.innerHTML="";
-  if(items.length&&items[0].up.length){ const u=items[0].up[0], r=items[0].r; const b=document.createElement("b"); b.textContent=`${r.line} ${u.t}`; pk.append("Next: "); pk.appendChild(b); pk.append(` from ${r.stop} · ${fmtIn(Math.round(u.eff-m))}`); }
+  const fi=items.find(i=>i.hits.length&&i.up.length);
+  if(fi){ const u=fi.up[0], r=fi.r; const b=document.createElement("b"); b.textContent=`${r.line} ${u.t}`; pk.append("To board: "); pk.appendChild(b); pk.append(` → ${fi.hits.join(", ")} · ${fmtIn(Math.round(u.eff-m))}`); }
+  else if(items.length&&items[0].up.length){ const u=items[0].up[0], r=items[0].r; const b=document.createElement("b"); b.textContent=`${r.line} ${u.t}`; pk.append("Next: "); pk.appendChild(b); pk.append(` from ${r.stop} · ${fmtIn(Math.round(u.eff-m))}`); }
   else pk.textContent="No more departures today";
   if(tab==="back") plan();
 }
@@ -387,6 +458,9 @@ function locate(cb){
     ()=>{ $("locmsg").textContent="Location isn't available here. Tap the map or pick a college."; },{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
 }
 $("gps").onclick=()=>locate();
+$("badd").onchange=e=>{ const v=e.target.value; if(v&&!flags.has(v)) toggleFlag(v); };
+$("bclear").onclick=()=>{ if(!$("bclear").dataset.armed){ $("bclear").dataset.armed="1"; $("bclear").textContent="Tap again to clear"; setTimeout(()=>{ delete $("bclear").dataset.armed; $("bclear").textContent="Clear all"; },2500); return; }
+  delete $("bclear").dataset.armed; $("bclear").textContent="Clear all"; flags.clear(); saveFlags(); renderFlags(); render(); drawStatic(); drawDynamic(); renderFlagbar(); };
 $("locate").onclick=()=>locate(()=>centerOn(me,3));
 $("tapset").onclick=()=>{ setting=!setting; $("mapbox").classList.toggle("setting",setting); $("hint").hidden=!setting; $("tapset").classList.toggle("on",setting); if(setting&&!desktop()) setOpen(false); };
 (function(){ const s=$("atcol"); for(const c of COL.filter(c=>c[3]!=="C").concat(COL.filter(c=>c[3]==="C"))){ const o=document.createElement("option"); o.value=c[0]; o.textContent=c[0]; s.appendChild(o);} s.onchange=()=>{ const c=COL.find(x=>x[0]===s.value); if(c) setMe([c[1],c[2]],`At ${c[0]}'s porters' lodge.`); }; })();
@@ -416,7 +490,8 @@ function drawStatic(){
   if(MD.water) el("path",{d:pathOf(MD.water,true),fill:"var(--m-water)"},gStatic);
   if(MD.river) el("path",{d:pathOf(MD.river,false),fill:"none",stroke:"var(--m-water)","stroke-width":9,"stroke-linecap":"round","stroke-linejoin":"round"},gStatic);
   const cg=el("g",{},gStatic);
-  if(MD.cols) for(const [k,s] of Object.entries(MD.cols)){ const c=CLUSTER[k]||"C"; const outer=c!=="C"; if(outer&&!show[c]) continue; const col=outer?`var(${CL[c].c})`:"var(--central)";
+  if(MD.cols) for(const [k,s] of Object.entries(MD.cols)){ const c=CLUSTER[k]||"C"; const outer=c!=="C"; const fl=flags.has(k); if(outer&&!show[c]&&!fl) continue; const col=fl?"var(--flag)":outer?`var(${CL[c].c})`:"var(--central)";
+    if(fl){ el("path",{d:pathOf(s,true),fill:"var(--flag)","fill-opacity":.28,stroke:"var(--flag)","stroke-width":3.2,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"},cg); continue; }
     el("path",{d:pathOf(s,true),fill:col,"fill-opacity":outer?.16:.08,stroke:col,"stroke-width":outer?2.2:1.2,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"},cg); }
   if(MD.bld) el("path",{d:pathOf(MD.bld,true),fill:"var(--m-bld)",stroke:"var(--m-bldl)","stroke-width":.6,"vector-effect":"non-scaling-stroke"},gStatic);
   const roads=[["r3",5,"var(--m-road)"],["r2",8,"var(--m-road)"],["r1",11,"var(--m-main)"]];
@@ -443,7 +518,12 @@ function drawDynamic(){
     el("rect",{x:x-7,y:y-7,width:14,height:14,rx:4,fill:on?"var(--chip)":"var(--panel)",stroke:"var(--chip)","stroke-width":2},g);
     el("path",{d:`M${x-3.5} ${y+2.5}h7M${x-3.5} ${y-1}h7`,stroke:on?"var(--chipfg)":"var(--chip)","stroke-width":1.6},g);
     labelEls.push(g); }
-  for(const c of COL){ const k=c[3], outer=k!=="C"; if(outer&&!show[k]) continue; const [x,y]=PX(c[1],c[2]);
+  for(const c of COL){ const k=c[3], outer=k!=="C"; const fl=flags.has(c[0]); if(outer&&!show[k]&&!fl) continue; const [x,y]=PX(c[1],c[2]);
+    if(fl){ const g=el("g",{"data-k":"flag","data-x":x,"data-y":y},gLabels);
+      el("circle",{cx:x,cy:y,r:small?15:14,fill:"var(--flag)","fill-opacity":.25,stroke:"var(--flag)","stroke-width":3},g);
+      el("circle",{cx:x,cy:y,r:small?8:7,fill:outer?`var(${CL[k].c})`:"var(--central)",stroke:"var(--panel)","stroke-width":2.5},g);
+      const t=el("text",{x:x+16,y:y+6,"font-family":"var(--body)","font-weight":800,"font-size":small?19:17,fill:"var(--flagt)",stroke:"var(--m-land)","stroke-width":5,"paint-order":"stroke"},g); t.textContent="⚑ "+c[0];
+      labelEls.push(g); continue; }
     const g=el("g",{"data-k":outer?"outer":"central","data-x":x,"data-y":y},gLabels);
     el("circle",{cx:x,cy:y,r:outer?(small?9:8):(small?6:5),fill:outer?`var(${CL[k].c})`:"var(--central)",stroke:"var(--panel)","stroke-width":2.5},g);
     const t=el("text",{x:x+11,y:y+5,"font-family":"var(--body)","font-weight":outer?700:600,"font-size":outer?(small?18:16):(small?14.5:13),fill:outer?`var(${CL[k].c})`:"var(--muted)",stroke:"var(--m-land)","stroke-width":4,"paint-order":"stroke"},g); t.textContent=c[0];
@@ -461,6 +541,7 @@ function drawDynamic(){
     labelEls.push(g); } }
   if(me){ const [x,y]=PX(me[0],me[1]); const g=el("g",{"data-k":"me","data-x":x,"data-y":y},gLabels);
     el("circle",{cx:x,cy:y,r:20,fill:"var(--me)","fill-opacity":.18},g); el("circle",{cx:x,cy:y,r:8,fill:"var(--me)",stroke:"#fff","stroke-width":3},g); labelEls.push(g); }
+  for(const g of [...gLabels.querySelectorAll('g[data-k="flag"]')]) gLabels.appendChild(g); // flagged on top
   labelScale();
 }
 function labelScale(){
@@ -468,17 +549,23 @@ function labelScale(){
   const hit=b=>boxes.some(o=>b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1]);
   const scr=g=>[view.tx+(+g.dataset.x)*view.s, view.ty+(+g.dataset.y)*view.s];
   for(const g of labelEls){ const x=+g.dataset.x,y=+g.dataset.y; g.setAttribute("transform",`translate(${x} ${y}) scale(${k}) translate(${-x} ${-y})`);
-    const [sx,sy]=scr(g); const rr={stop:8,bus:12,hub:0,central:5,outer:9,me:9}[g.dataset.k]||0; if(rr) boxes.push([sx-rr,sy-rr,sx+rr,sy+rr]); }
-  const pri={me:0,hub:1,outer:2,central:3};
+    const [sx,sy]=scr(g); const rr={stop:8,bus:12,hub:0,central:5,outer:9,me:9,flag:15}[g.dataset.k]||0; if(rr) boxes.push([sx-rr,sy-rr,sx+rr,sy+rr]); }
+  { const sr=svg.getBoundingClientRect(); for(const sel of [".ctl","#flagbar"]){ const n=document.querySelector(sel); if(!n||n.hidden) continue; const cr=n.getBoundingClientRect(); if(cr.width) boxes.push([cr.left-sr.left-4,cr.top-sr.top-4,cr.right-sr.left+4,cr.bottom-sr.top+4]); } }
+  const pri={me:0,flag:1,hub:2,outer:3,central:4};
   const withText=labelEls.filter(g=>g.querySelector("text")&&g.dataset.k in pri).sort((a,b)=>pri[a.dataset.k]-pri[b.dataset.k]);
   for(const g of withText){ const t=g.querySelector("text"); const x=+g.dataset.x,y=+g.dataset.y; const [sx,sy]=scr(g);
     if(g.dataset.k==="central"&&rel<2.2){ t.style.display="none"; continue; }
     t.style.display=""; const fs=+t.getAttribute("font-size"); let w=t._w; if(!w){ try{w=t.getComputedTextLength()}catch(e){} if(!w) w=t.textContent.length*fs*0.56; t._w=w; }
     const hubk=g.dataset.k==="hub";
-    const cand=hubk?[["middle",0,-13],["middle",0,26],["start",13,6],["end",-13,6]]:[["start",12,5],["end",-12,5],["middle",0,-12],["middle",0,fs+9],["start",10,-8],["start",10,fs+3],["end",-10,-8],["end",-10,fs+3]];
+    const fk=g.dataset.k==="flag";
+    const cand=hubk?[["middle",0,-13],["middle",0,26],["start",13,6],["end",-13,6]]:fk?[["start",17,6],["end",-17,6],["middle",0,-19],["middle",0,fs+16],["start",13,-12],["end",-13,-12],["start",13,fs+10],["end",-13,fs+10]]:[["start",12,5],["end",-12,5],["middle",0,-12],["middle",0,fs+9],["start",10,-8],["start",10,fs+3],["end",-10,-8],["end",-10,fs+3]];
     let ok=false;
     for(const [a,dx,dy] of cand){ const left=a==="start"?sx+dx:a==="end"?sx+dx-w:sx+dx-w/2; const b=[left-2,sy+dy-fs*0.82,left+w+2,sy+dy+fs*0.22];
-      if(b[0]>=v.x+2&&b[2]<=v.W-58&&b[1]>=v.y&&b[3]<=v.y+v.h&&!hit(b)){ t.setAttribute("text-anchor",a); t.setAttribute("x",x+dx); t.setAttribute("y",y+dy); boxes.push(b); ok=true; break; } }
+      if(b[0]>=v.x+2&&b[2]<=v.W-4&&b[1]>=v.y&&b[3]<=v.y+v.h&&!hit(b)){ t.setAttribute("text-anchor",a); t.setAttribute("x",x+dx); t.setAttribute("y",y+dy); boxes.push(b); ok=true; break; } }
+    if(!ok&&fk){ // flagged names always show: take the first on-screen spot, overlapping if necessary
+      const boxOf=([a,dx,dy])=>{ const left=a==="start"?sx+dx:a==="end"?sx+dx-w:sx+dx-w/2; return [left-2,sy+dy-fs*0.82,left+w+2,sy+dy+fs*0.22]; };
+      const score=c=>{ const b=boxOf(c); const off=(b[0]<v.x+2||b[2]>v.W-4||b[1]<v.y||b[3]>v.y+v.h)?100:0; return off+boxes.filter(o=>b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1]).length; };
+      const c=cand.slice().sort((p,q)=>score(p)-score(q))[0]; const [a,dx,dy]=c; t.setAttribute("text-anchor",a); t.setAttribute("x",x+dx); t.setAttribute("y",y+dy); boxes.push(boxOf(c)); ok=true; }
     if(!ok) t.style.display="none"; }
 }
 function refit(){ for(const t of svg.querySelectorAll("text")) t._w=0; drawDynamic(); fit(); }
@@ -490,7 +577,10 @@ function refit(){ for(const t of svg.querySelectorAll("text")) t._w=0; drawDynam
     if(pts.size===2&&pinch){ const [a,b]=[...pts.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]); const r=svg.getBoundingClientRect(); zoomAt(d/pinch.d,(a[0]+b[0])/2-r.left,(a[1]+b[1])/2-r.top); pinch.d=d; moved+=10; return; }
     const dx=e.clientX-prev[0], dy=e.clientY-prev[1]; moved+=Math.abs(dx)+Math.abs(dy); view.tx+=dx; view.ty+=dy; apply(); });
   const end=e=>{ if(!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if(pts.size<2) pinch=null;
-    if(pts.size===0&&moved<8&&setting){ const r=svg.getBoundingClientRect(); const x=(e.clientX-r.left-view.tx)/view.s, y=(e.clientY-r.top-view.ty)/view.s; setMe([LAT0-y/KY, LON0+x/KX],"Using the spot you tapped."); if(!desktop()) setOpen(true); } };
+    if(pts.size===0&&moved<8&&setting){ const r=svg.getBoundingClientRect(); const x=(e.clientX-r.left-view.tx)/view.s, y=(e.clientY-r.top-view.ty)/view.s; setMe([LAT0-y/KY, LON0+x/KX],"Using the spot you tapped."); if(!desktop()) setOpen(true); }
+    else if(pts.size===0&&moved<8){ const r=svg.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top; let best=null,bd=34;
+      for(const c of COL){ if(c[3]!=="C"&&!show[c[3]]&&!flags.has(c[0])) continue; const [x,y]=PX(c[1],c[2]); const d=Math.hypot(view.tx+x*view.s-px,view.ty+y*view.s-py); if(d<bd){bd=d;best=c[0]} }
+      fbCol=best; renderFlagbar(); labelScale(); } };
   box.addEventListener("pointerup",end); box.addEventListener("pointercancel",end);
   box.addEventListener("wheel",e=>{ e.preventDefault(); const r=svg.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top); },{passive:false});
   const mid=()=>{const v=visibleRect();return [v.x+v.w/2,v.y+v.h/2]};
@@ -533,6 +623,6 @@ function tick(){
 }
 $("pv").addEventListener("input",e=>{ pvMin=+e.target.value; tick(); });
 
-renderTabs(); setOpen(desktop()); drawStatic(); drawDynamic(); tick(); fit(); setTimeout(refit,350); if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>setTimeout(refit,50)); setInterval(tick,20000); poll();
+renderTabs(); renderFlags(); setOpen(desktop()); drawStatic(); drawDynamic(); tick(); fit(); setTimeout(refit,350); if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>setTimeout(refit,50)); setInterval(tick,20000); poll();
 })();
 </script>
