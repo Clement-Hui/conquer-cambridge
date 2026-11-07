@@ -445,18 +445,18 @@ function drawDynamic(){
     labelEls.push(g); }
   for(const c of COL){ const k=c[3], outer=k!=="C"; if(outer&&!show[k]) continue; const [x,y]=PX(c[1],c[2]);
     const g=el("g",{"data-k":outer?"outer":"central","data-x":x,"data-y":y},gLabels);
-    el("circle",{cx:x,cy:y,r:outer?8:5,fill:outer?`var(${CL[k].c})`:"var(--central)",stroke:"var(--panel)","stroke-width":2.5},g);
-    const t=el("text",{x:x+11,y:y+5,"font-family":"var(--body)","font-weight":outer?700:600,"font-size":outer?(small?15:16):(small?12:13),fill:outer?`var(${CL[k].c})`:"var(--muted)",stroke:"var(--m-land)","stroke-width":4,"paint-order":"stroke"},g); t.textContent=c[0];
+    el("circle",{cx:x,cy:y,r:outer?(small?9:8):(small?6:5),fill:outer?`var(${CL[k].c})`:"var(--central)",stroke:"var(--panel)","stroke-width":2.5},g);
+    const t=el("text",{x:x+11,y:y+5,"font-family":"var(--body)","font-weight":outer?700:600,"font-size":outer?(small?18:16):(small?14.5:13),fill:outer?`var(${CL[k].c})`:"var(--muted)",stroke:"var(--m-land)","stroke-width":4,"paint-order":"stroke"},g); t.textContent=c[0];
     labelEls.push(g); }
   for(const h of HUBS){ const [x,y]=PX(h[1],h[2]); const g=el("g",{"data-k":"hub","data-x":x,"data-y":y},gLabels);
-    const t=el("text",{x:x,y:y-14,"text-anchor":"middle","font-family":"var(--display)","font-weight":700,"font-size":small?18:20,fill:"var(--ink)",stroke:"var(--m-land)","stroke-width":5,"paint-order":"stroke"},g); t.textContent=h[0]; labelEls.push(g); }
+    const t=el("text",{x:x,y:y-14,"text-anchor":"middle","font-family":"var(--display)","font-weight":700,"font-size":small?22:20,fill:"var(--ink)",stroke:"var(--m-land)","stroke-width":5,"paint-order":"stroke"},g); t.textContent=h[0]; labelEls.push(g); }
   if(live&&live.vehicles){ for(const v of live.vehicles){ const [x,y]=PX(v.lat,v.lon); if(x<-50||x>3120||y<-50||y>3330) continue;
     const g=el("g",{"data-k":"bus","data-x":x,"data-y":y},gLabels);
-    const bw=v.line.length>2?30:26, bh=15, bx=x-bw/2, by=y-bh/2;
+    const bw=(v.line.length>2?30:26)*(small?1.15:1), bh=15*(small?1.15:1), bx=x-bw/2, by=y-bh/2;
     el("rect",{x:bx,y:by,width:bw,height:bh,rx:3.5,fill:"var(--live)",stroke:"var(--panel)","stroke-width":1.4},g);
-    el("rect",{x:bx+2.5,y:by+2.5,width:bw-5,height:8.5,rx:1.5,fill:"var(--panel)"},g);
+    el("rect",{x:bx+2.5,y:by+2.5,width:bw-5,height:bh-6.5,rx:1.5,fill:"var(--panel)"},g);
     el("circle",{cx:bx+6,cy:by+bh,r:2.4,fill:"var(--ink)"},g); el("circle",{cx:bx+bw-6,cy:by+bh,r:2.4,fill:"var(--ink)"},g);
-    const t=el("text",{x:x,y:by+9.7,"text-anchor":"middle","font-family":"var(--display)","font-size":9.5,"font-weight":700,fill:"var(--ink)"},g); t.textContent=v.line;
+    const t=el("text",{x:x,y:by+bh*0.65,"text-anchor":"middle","font-family":"var(--display)","font-size":small?11:9.5,"font-weight":700,fill:"var(--ink)"},g); t.textContent=v.line;
     const tt=el("title",{},g); tt.textContent=`${v.line} to ${v.dest}`+(v.delay!=null?` · ${Math.round(v.delay/60)} min ${v.delay>=0?"late":"early"}`:"");
     labelEls.push(g); } }
   if(me){ const [x,y]=PX(me[0],me[1]); const g=el("g",{"data-k":"me","data-x":x,"data-y":y},gLabels);
