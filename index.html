@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Conquer">
 <title>Conquer Cambridge</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#f4f5f2">
@@ -189,11 +195,13 @@ details.about div{margin-top:6px;display:grid;gap:6px}
   details.about{font-size:15.5px} .themebtn{font-size:16px;padding:7px 14px}
 }
 line.ld{stroke:var(--ink);stroke-width:1.3;opacity:.6;pointer-events:none}
+#north svg{transition:none;display:block;margin:auto}
+.ctl button[hidden]{display:none}
 </style>
 
 <div id="app">
   <div class="mapbox" id="mapbox"><svg class="map" id="map" role="img" aria-label="Map of Cambridge colleges, buildings, roads, bus routes and stops"></svg></div>
-  <div class="ctl"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="locate" aria-label="Show my location" title="My location">◎</button><button type="button" id="zfit" class="small" aria-label="Show all colleges">All</button></div>
+  <div class="ctl"><button type="button" id="north" aria-label="Point north" title="Point north" hidden><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2 L17 12 H7 Z" fill="#d2392b"/><path d="M12 22 L7 12 H17 Z" fill="currentColor" opacity=".45"/></svg></button><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="locate" aria-label="Show my location" title="My location">◎</button><button type="button" id="zfit" class="small" aria-label="Show all colleges">All</button></div>
   <div class="hint" id="hint" hidden>Tap where you are</div>
   <div class="flagbar" id="flagbar" hidden></div>
 
@@ -553,23 +561,26 @@ function collegeAt(cx,cy){
   for(const node of document.elementsFromPoint(cx,cy)){ const g=node.closest&&node.closest("g[data-col]"); if(g&&visibleCol(g.dataset.col)) return g.dataset.col; }
   const r=svg.getBoundingClientRect(); const px=cx-r.left, py=cy-r.top;
   // 2) a lodge marker within a fingertip
-  let best=null,bd=24; for(const c of COL){ if(!visibleCol(c[0])) continue; const [x,y]=PX(c[1],c[2]); const d=Math.hypot(view.tx+x*view.s-px,view.ty+y*view.s-py); if(d<bd){bd=d;best=c[0]} } if(best) return best;
+  let best=null,bd=24; for(const c of COL){ if(!visibleCol(c[0])) continue; const [x,y]=PX(c[1],c[2]); const [qx,qy]=toScr(x,y); const d=Math.hypot(qx-px,qy-py); if(d<bd){bd=d;best=c[0]} } if(best) return best;
   // 3) inside a college's grounds
   if(!COLPOLY){ COLPOLY={}; for(const [k,s] of Object.entries(MD.cols||{})) COLPOLY[k]=s.split(" ").map(dec).filter(q=>q.length>2); }
-  const wp=[(px-view.tx)/view.s,(py-view.ty)/view.s];
+  const wp=toWorld(px,py);
   for(const [k,rings] of Object.entries(COLPOLY)){ if(!visibleCol(k)) continue; if(rings.some(q=>inRing(wp,q))) return k; }
   // 4) near miss
-  bd=40; for(const c of COL){ if(!visibleCol(c[0])) continue; const [x,y]=PX(c[1],c[2]); const d=Math.hypot(view.tx+x*view.s-px,view.ty+y*view.s-py); if(d<bd){bd=d;best=c[0]} }
+  bd=40; for(const c of COL){ if(!visibleCol(c[0])) continue; const [x,y]=PX(c[1],c[2]); const [qx,qy]=toScr(x,y); const d=Math.hypot(qx-px,qy-py); if(d<bd){bd=d;best=c[0]} }
   return best;
 }
-let view={s:1,tx:0,ty:0};
+let view={s:1,tx:0,ty:0,r:0};
+const toScr=(x,y)=>{ const c=Math.cos(view.r), n=Math.sin(view.r); return [view.tx+view.s*(c*x-n*y), view.ty+view.s*(n*x+c*y)]; };
+const toWorld=(px,py)=>{ const c=Math.cos(view.r), n=Math.sin(view.r), dx=px-view.tx, dy=py-view.ty; return [(c*dx+n*dy)/view.s, (-n*dx+c*dy)/view.s]; };
+function rotateAt(da,cx,cy){ const c=Math.cos(da), n=Math.sin(da), dx=view.tx-cx, dy=view.ty-cy; view.tx=cx+c*dx-n*dy; view.ty=cy+n*dx+c*dy; view.r=((view.r+da+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI; apply(); }
 const AOI=(()=>{const a=PX(52.2168,0.0978),b=PX(52.1958,0.1362);return {x0:a[0],y0:a[1],x1:b[0],y1:b[1]}})();
 function visibleRect(){ const r=svg.getBoundingClientRect(); const top=$("app").querySelector(".top").getBoundingClientRect().bottom-r.top+6; let left=0,bottom=r.height;
   const sh=$("sheet").getBoundingClientRect(); if(desktop()){ if($("sheet").dataset.open==="1") left=$("sheet").offsetWidth; } else { const pk=parseFloat(getComputedStyle(document.body).getPropertyValue("--peek"))||178; bottom=$("sheet").dataset.open==="1"?Math.min(r.height,sh.top-r.top):r.height-pk; } return {x:left,y:top,w:r.width-left-64,h:Math.max(120,bottom-top),W:r.width,H:r.height}; }
-function fit(){ const v=visibleRect(); const w=AOI.x1-AOI.x0,h=AOI.y1-AOI.y0; const s=Math.min(v.w/w,v.h/h); view={s,tx:v.x+(v.w-w*s)/2-AOI.x0*s,ty:v.y+(v.h-h*s)/2-AOI.y0*s}; apply(); }
+function fit(){ const v=visibleRect(); const w=AOI.x1-AOI.x0,h=AOI.y1-AOI.y0; const s=Math.min(v.w/w,v.h/h); view={s,tx:v.x+(v.w-w*s)/2-AOI.x0*s,ty:v.y+(v.h-h*s)/2-AOI.y0*s,r:0}; apply(); }
 function baseScale(){ const v=visibleRect(); return Math.min(v.w/(AOI.x1-AOI.x0),v.h/(AOI.y1-AOI.y0)); }
-function centerOn(ll,zoomRel){ if(!ll) return; const v=visibleRect(); const s=Math.max(view.s,baseScale()*(zoomRel||2)); const [x,y]=PX(ll[0],ll[1]); view={s,tx:v.x+v.w/2-x*s,ty:v.y+v.h/2-y*s}; apply(); }
-function apply(){ world.setAttribute("transform",`translate(${view.tx} ${view.ty}) scale(${view.s})`); labelScale(); }
+function centerOn(ll,zoomRel){ if(!ll) return; const v=visibleRect(); const s=Math.max(view.s,baseScale()*(zoomRel||2)); const [x,y]=PX(ll[0],ll[1]); const c=Math.cos(view.r), n=Math.sin(view.r); view={s,r:view.r,tx:v.x+v.w/2-s*(c*x-n*y),ty:v.y+v.h/2-s*(n*x+c*y)}; apply(); }
+function apply(){ world.setAttribute("transform",`translate(${view.tx} ${view.ty}) rotate(${view.r*180/Math.PI}) scale(${view.s})`); const nb=$("north"); if(nb){ nb.hidden=Math.abs(view.r)<0.003; nb.firstChild.style.transform=`rotate(${view.r*180/Math.PI}deg)`; } labelScale(); }
 function zoomAt(f,cx,cy){ const b=baseScale(); const ns=Math.min(Math.max(view.s*f,b*0.3),b*16); const k=ns/view.s; view.tx=cx-(cx-view.tx)*k; view.ty=cy-(cy-view.ty)*k; view.s=ns; apply(); }
 
 function drawStatic(){
@@ -636,11 +647,11 @@ function drawDynamic(){
 function labelScale(){
   const v=visibleRect(); const rel=view.s/(baseScale()||1); const k=1/view.s; const boxes=[];
   const hit=(b,soft)=>boxes.some(o=>!(soft&&o.soft)&&b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1]);
-  const scr=g=>[view.tx+(+g.dataset.x)*view.s, view.ty+(+g.dataset.y)*view.s];
-  for(const g of labelEls){ const x=+g.dataset.x,y=+g.dataset.y; g.setAttribute("transform",`translate(${x} ${y}) scale(${k}) translate(${-x} ${-y})`);
+  const scr=g=>toScr(+g.dataset.x,+g.dataset.y);
+  for(const g of labelEls){ const x=+g.dataset.x,y=+g.dataset.y; g.setAttribute("transform",`translate(${x} ${y}) rotate(${-view.r*180/Math.PI}) scale(${k}) translate(${-x} ${-y})`);
     const [sx,sy]=scr(g); const rr={stop:8,bus:12,hub:0,central:5,outer:9,me:9,flag:15}[g.dataset.k]||0; if(rr){ const bx=[sx-rr,sy-rr,sx+rr,sy+rr]; if(g.dataset.k==="stop"||g.dataset.k==="bus") bx.soft=1; else bx.dot=1; boxes.push(bx); } }
   const cc=COL.filter(c=>c[3]==="C").map(c=>PX(c[1],c[2])); const segs=[]; const xseg=(a,b)=>{ const o=(p,q,r)=>Math.sign((q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0])); const A=[a[0],a[1]],B=[a[2],a[3]],C=[b[0],b[1]],D=[b[2],b[3]]; return o(A,B,C)*o(A,B,D)<0&&o(C,D,A)*o(C,D,B)<0; };
-  const CEN=[view.tx+view.s*cc.reduce((s,q)=>s+q[0],0)/cc.length, view.ty+view.s*cc.reduce((s,q)=>s+q[1],0)/cc.length];
+  const CEN=toScr(cc.reduce((s,q)=>s+q[0],0)/cc.length, cc.reduce((s,q)=>s+q[1],0)/cc.length);
   { const sr=svg.getBoundingClientRect(); for(const sel of [".ctl","#flagbar"]){ const n=document.querySelector(sel); if(!n||n.hidden) continue; const cr=n.getBoundingClientRect(); if(cr.width) boxes.push([cr.left-sr.left-4,cr.top-sr.top-4,cr.right-sr.left+4,cr.bottom-sr.top+4]); } }
   const pri={me:0,flag:1,hub:2,outer:3,central:4}, wt={me:1000,flag:100,outer:10,hub:8,central:6};
   const items=labelEls.filter(g=>g.querySelector("text")&&g.dataset.k in pri).map(g=>{ const t=g.querySelector("text"); const fs=+t.getAttribute("font-size");
@@ -681,20 +692,27 @@ function labelScale(){
 function refit(){ setPeek(); for(const t of svg.querySelectorAll("text")) t._w=0; drawDynamic(); fit(); }
 
 (function(){
-  const box=$("mapbox"); const pts=new Map(); let moved=0, pinch=null;
-  box.addEventListener("pointerdown",e=>{ box.setPointerCapture(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]); moved=0; if(pts.size===2){ const [a,b]=[...pts.values()]; pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1])}; } });
+  const mid=()=>{const v=visibleRect();return [v.x+v.w/2,v.y+v.h/2]};
+  const box=$("mapbox"); const pts=new Map(); let moved=0, pinch=null, rotDrag=false;
+  box.addEventListener("contextmenu",e=>e.preventDefault());
+  box.addEventListener("pointerdown",e=>{ box.setPointerCapture(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]); moved=0; rotDrag=e.pointerType==="mouse"&&(e.shiftKey||e.button===2); if(pts.size===2){ const [a,b]=[...pts.values()]; pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),a:Math.atan2(b[1]-a[1],b[0]-a[0]),m:[(a[0]+b[0])/2,(a[1]+b[1])/2],acc:0,rot:false}; } });
   box.addEventListener("pointermove",e=>{ if(!pts.has(e.pointerId)) return; const prev=pts.get(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]);
-    if(pts.size===2&&pinch){ const [a,b]=[...pts.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]); const r=svg.getBoundingClientRect(); zoomAt(d/pinch.d,(a[0]+b[0])/2-r.left,(a[1]+b[1])/2-r.top); pinch.d=d; moved+=10; return; }
+    if(pts.size===2&&pinch){ const [a,b]=[...pts.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]); const an=Math.atan2(b[1]-a[1],b[0]-a[0]); const m=[(a[0]+b[0])/2,(a[1]+b[1])/2]; const r=svg.getBoundingClientRect();
+      view.tx+=m[0]-pinch.m[0]; view.ty+=m[1]-pinch.m[1];
+      let da=an-pinch.a; if(da>Math.PI) da-=2*Math.PI; if(da<-Math.PI) da+=2*Math.PI; pinch.acc+=da; if(!pinch.rot&&Math.abs(pinch.acc)>0.18) pinch.rot=true; // small twists while pinching don't rotate
+      if(pinch.rot) { const c=Math.cos(da), n=Math.sin(da), cx=m[0]-r.left, cy=m[1]-r.top, dx=view.tx-cx, dy=view.ty-cy; view.tx=cx+c*dx-n*dy; view.ty=cy+n*dx+c*dy; view.r+=da; }
+      zoomAt(d/pinch.d,m[0]-r.left,m[1]-r.top); pinch.d=d; pinch.a=an; pinch.m=m; moved+=10; return; }
+    if(rotDrag&&pts.size===1){ const [cx,cy]=mid(); const dxm=e.clientX-prev[0]; moved+=Math.abs(dxm)+Math.abs(e.clientY-prev[1]); rotateAt(dxm*0.006,cx,cy); return; }
     const dx=e.clientX-prev[0], dy=e.clientY-prev[1]; moved+=Math.abs(dx)+Math.abs(dy); view.tx+=dx; view.ty+=dy; apply(); });
   const end=e=>{ if(!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if(pts.size<2) pinch=null;
-    if(pts.size===0&&moved<8&&setting){ const r=svg.getBoundingClientRect(); const x=(e.clientX-r.left-view.tx)/view.s, y=(e.clientY-r.top-view.ty)/view.s; setMe([LAT0-y/KY, LON0+x/KX],"Using the spot you tapped."); if(!desktop()) setOpen(true); }
+    if(pts.size===0&&moved<8&&setting){ const r=svg.getBoundingClientRect(); const [x,y]=toWorld(e.clientX-r.left,e.clientY-r.top); setMe([LAT0-y/KY, LON0+x/KX],"Using the spot you tapped."); if(!desktop()) setOpen(true); }
     else if(pts.size===0&&moved<8){ fbCol=collegeAt(e.clientX,e.clientY); renderFlagbar(); labelScale(); } };
   box.addEventListener("pointerup",end); box.addEventListener("pointercancel",end);
   box.addEventListener("wheel",e=>{ e.preventDefault(); const r=svg.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top); },{passive:false});
-  const mid=()=>{const v=visibleRect();return [v.x+v.w/2,v.y+v.h/2]};
   $("zin").onclick=()=>{const [x,y]=mid();zoomAt(1.6,x,y)};
   $("zout").onclick=()=>{const [x,y]=mid();zoomAt(1/1.6,x,y)};
   $("zfit").onclick=fit;
+  $("north").onclick=()=>{ const [cx,cy]=mid(); const r0=view.r, t0=performance.now(); const step=t=>{ const f=Math.min(1,(t-t0)/280), e2=1-Math.pow(1-f,3); rotateAt(r0*(1-e2)-view.r,cx,cy); if(f<1) requestAnimationFrame(step); else { view.r=0; apply(); } }; requestAnimationFrame(step); };
   let rt; window.addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(()=>{ setOpen($("sheet").dataset.open==="1"); drawDynamic(); fit(); },120); });
 })();
 
@@ -734,3 +752,5 @@ $("pv").addEventListener("input",e=>{ pvMin=+e.target.value; tick(); });
 renderTabs(); renderFlags(); setPeek(); setOpen(desktop()); drawStatic(); drawDynamic(); tick(); fit(); setTimeout(refit,350); if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>setTimeout(refit,50)); setInterval(tick,20000); poll();
 })();
 </script>
+
+<script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
